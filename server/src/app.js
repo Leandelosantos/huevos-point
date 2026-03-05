@@ -17,6 +17,9 @@ const auditRoutes = require('./modules/audit/audit.routes');
 
 const app = express();
 
+// Trust proxy (required for Vercel/serverless behind reverse proxy)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(cors({
