@@ -54,6 +54,20 @@ app.get('/api/health', (_req, res) => {
   res.json({ success: true, message: 'Huevos Point API running' });
 });
 
+// TEMPORARY: Debug DB config (remove after deployment is working)
+app.get('/api/debug-config', (_req, res) => {
+  const env = require('./config/environment');
+  res.json({
+    NODE_ENV: env.NODE_ENV,
+    DB_HOST: env.DB_HOST,
+    DB_PORT: env.DB_PORT,
+    DB_USER: env.DB_USER,
+    DB_NAME: env.DB_NAME,
+    DB_PASSWORD_LENGTH: (env.DB_PASSWORD || '').length,
+    DB_PASSWORD_LAST3: (env.DB_PASSWORD || '').slice(-3),
+  });
+});
+
 // Global error handler (must be last)
 app.use(errorMiddleware);
 
