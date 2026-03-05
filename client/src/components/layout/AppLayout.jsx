@@ -2,16 +2,15 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Box, AppBar, Toolbar, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
+import EggRoundedIcon from '@mui/icons-material/EggRounded';
 import Sidebar, { DRAWER_WIDTH } from './Sidebar';
+
+const COLLAPSED_WIDTH = 80;
 
 const AppLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  // On desktop, we want the drawer to be collapsible but still push content.
-  // We'll manage a separate state for desktop drawer if needed, but for now we'll
-  // assume the user wants it to be open by default on desktop.
   const [desktopOpen, setDesktopOpen] = useState(true);
 
   const handleDrawerToggle = () => {
@@ -22,9 +21,7 @@ const AppLayout = () => {
     }
   };
 
-  // We hardcode 80 here or export COLLAPSED_WIDTH from Sidebar. We'll use 80 for simplicity.
-  const COLLAPSED_WIDTH = 80;
-  const actualDrawerWidth = isMobile ? (mobileOpen ? DRAWER_WIDTH : 0) : (desktopOpen ? DRAWER_WIDTH : COLLAPSED_WIDTH);
+  const actualDrawerWidth = isMobile ? 0 : (desktopOpen ? DRAWER_WIDTH : COLLAPSED_WIDTH);
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -35,18 +32,58 @@ const AppLayout = () => {
         onDrawerToggle={handleDrawerToggle}
       />
 
+      {/* Mobile/Tablet Top AppBar */}
+      {isMobile && (
+        <AppBar
+          position="fixed"
+          elevation={0}
+          sx={{
+            background: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)',
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+            zIndex: theme.zIndex.drawer + 1,
+          }}
+        >
+          <Toolbar sx={{ minHeight: { xs: 56 }, px: { xs: 1.5 } }}>
+            <IconButton
+              color="inherit"
+              aria-label="abrir menú"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 1.5 }}
+            >
+              <MenuRoundedIcon />
+            </IconButton>
+            <Box
+              sx={{
+                width: 30, height: 30, borderRadius: '8px',
+                background: 'rgba(255,255,255,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                mr: 1,
+              }}
+            >
+              <EggRoundedIcon sx={{ fontSize: 18, color: '#B7E4C7' }} />
+            </Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
+              Huevos Point
+            </Typography>
+          </Toolbar>
+        </AppBar>
+      )}
+
       {/* Main Content Area */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: { sm: `calc(100% - ${actualDrawerWidth}px)` },
+          width: { md: `calc(100% - ${actualDrawerWidth}px)` },
           transition: theme.transitions.create(['margin', 'width'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
         }}
       >
+        {/* Spacer for mobile AppBar */}
+        {isMobile && <Toolbar sx={{ minHeight: { xs: 56 } }} />}
         <Box
           sx={{
             flex: 1,
