@@ -24,13 +24,10 @@ const sequelizeOptions = {
   },
 };
 
-// Support DATABASE_URL (used by Vercel/cloud environments) or individual vars
-const sequelize = process.env.DATABASE_URL
-  ? new Sequelize(process.env.DATABASE_URL, sequelizeOptions)
-  : new Sequelize(env.DB_NAME, env.DB_USER, env.DB_PASSWORD, {
-      host: env.DB_HOST,
-      port: env.DB_PORT,
-      ...sequelizeOptions,
-    });
+const sequelize = new Sequelize(env.DB_NAME, env.DB_USER, env.DB_PASSWORD, {
+  host: env.DB_HOST,
+  port: env.DB_PORT,
+  ...sequelizeOptions,
+});
 
 module.exports = sequelize;
