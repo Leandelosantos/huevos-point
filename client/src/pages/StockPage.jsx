@@ -115,7 +115,7 @@ const StockPage = () => {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, mb: 4, flexWrap: 'wrap', gap: 2, overflow: 'hidden' }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, mb: 4, flexWrap: 'wrap', gap: 2, overflow: 'hidden', width: '100%' }}>
         <Box>
           <Typography variant="h2" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.5 }}>
             Stock
@@ -129,7 +129,7 @@ const StockPage = () => {
             id="btn-import-stock"
             variant="outlined"
             onClick={() => setImportModalOpen(true)}
-            sx={{ px: 3 }}
+            sx={{ px: { xs: 1, sm: 3 }, width: { xs: '100%', sm: 'auto' } }}
           >
             Importar Stock
           </Button>
@@ -138,7 +138,7 @@ const StockPage = () => {
             variant="contained"
             startIcon={<AddRoundedIcon />}
             onClick={handleAdd}
-            sx={{ px: 3 }}
+            sx={{ px: { xs: 1, sm: 3 }, width: { xs: '100%', sm: 'auto' } }}
           >
             Agregar Producto
           </Button>

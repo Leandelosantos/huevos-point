@@ -202,7 +202,7 @@ const DashboardPage = () => {
             onChange={(e) => setSelectedDate(e.target.value)}
             size="small"
             InputLabelProps={{ shrink: true }}
-            sx={{ width: 180, bgcolor: 'background.paper' }}
+            sx={{ width: { xs: '100%', sm: 180 }, bgcolor: 'background.paper', mb: { xs: 1, sm: 0 } }}
           />
           {isAdmin && (
             <Button
@@ -219,9 +219,9 @@ const DashboardPage = () => {
       </Box>
 
       {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ mb: 4, width: '100%', m: 0, p: 0 }}>
         {summaryCards.map((card) => (
-          <Grid item xs={12} sm={4} key={card.label}>
+          <Grid item xs={12} sm={4} key={card.label} sx={{ pl: { xs: 0, sm: 3 }, pt: { xs: 2, sm: 3 } }}>
             <Card
               sx={{
                 background: card.bgGradient,
@@ -290,8 +290,8 @@ const DashboardPage = () => {
       </Grid>
 
       {/* Action Buttons */}
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6}>
+      <Grid container spacing={2} sx={{ mb: 4, width: '100%', m: 0 }}>
+        <Grid item xs={12} sm={6} sx={{ pl: { xs: 0, sm: 2 }, pt: { xs: 2, sm: 2 } }}>
           <Button
             id="btn-register-sale"
             variant="contained"
@@ -312,7 +312,7 @@ const DashboardPage = () => {
             Registrar Venta
           </Button>
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12} sm={6} sx={{ pl: { xs: 0, sm: 2 }, pt: { xs: 2, sm: 2 } }}>
           <Button
             id="btn-register-expense"
             variant="outlined"

@@ -24,7 +24,7 @@ const AppLayout = () => {
   const actualDrawerWidth = isMobile ? 0 : (desktopOpen ? DRAWER_WIDTH : COLLAPSED_WIDTH);
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', bgcolor: 'background.default' }}>
       <Sidebar
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
@@ -61,7 +61,7 @@ const AppLayout = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          width: { md: `calc(100% - ${actualDrawerWidth}px)` },
+          width: { xs: '100%', md: `calc(100% - ${actualDrawerWidth}px)` },
           transition: theme.transitions.create(['margin', 'width'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
@@ -73,7 +73,7 @@ const AppLayout = () => {
             flex: 1,
             p: { xs: 2, sm: 3, md: 4 },
             pt: { xs: 8, sm: 3, md: 4 }, // Extra top padding on mobile to accommodate the floating button
-            maxWidth: 1400,
+            maxWidth: '100%',
             mx: 'auto',
           }}
         >

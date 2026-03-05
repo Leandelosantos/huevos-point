@@ -108,8 +108,8 @@ const AuditPage = () => {
       {/* Filters */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={6} md={3}>
+          <Grid container spacing={2} alignItems="center" sx={{ width: '100%', m: 0 }}>
+            <Grid item xs={12} sm={6} md={3} sx={{ pl: { xs: 0, sm: 2 }, pt: { xs: 2, sm: 2 } }}>
               <TextField
                 label="Fecha desde"
                 type="date"
@@ -120,7 +120,7 @@ const AuditPage = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={3} sx={{ pl: { xs: 0, sm: 2 }, pt: { xs: 2, sm: 2 } }}>
               <TextField
                 label="Fecha hasta"
                 type="date"
@@ -131,7 +131,7 @@ const AuditPage = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={3} sx={{ pl: { xs: 0, sm: 2 }, pt: { xs: 2, sm: 2 } }}>
               <TextField
                 select
                 label="Tipo de acción"
@@ -147,7 +147,7 @@ const AuditPage = () => {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={3} sx={{ pl: { xs: 0, sm: 2 }, pt: { xs: 2, sm: 2 } }}>
               <TextField
                 label="Usuario"
                 fullWidth
