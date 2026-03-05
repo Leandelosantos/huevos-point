@@ -139,7 +139,7 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
           return (
             <Box key={index} sx={{ mb: 2 }}>
               {index > 0 && <Divider sx={{ mb: 2 }} />}
-              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5, alignItems: { xs: 'stretch', sm: 'flex-start' } }}>
                 <TextField
                   select
                   label="Producto"
@@ -176,14 +176,16 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
                   </Typography>
                 </Box>
 
-                <IconButton
-                  onClick={() => removeItem(index)}
-                  disabled={items.length <= 1}
-                  size="small"
-                  sx={{ mt: 0.5 }}
-                >
-                  <DeleteRoundedIcon fontSize="small" />
-                </IconButton>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', width: { xs: '100%', sm: 'auto' } }}>
+                  <IconButton
+                    onClick={() => removeItem(index)}
+                    disabled={items.length <= 1}
+                    size="small"
+                    sx={{ mt: { xs: 0, sm: 0.5 } }}
+                  >
+                    <DeleteRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Box>
               </Box>
             </Box>
           );
@@ -200,14 +202,14 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
 
         <Divider sx={{ my: 2 }} />
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, mb: 2 }}>
           <TextField
             select
             label="Método de pago"
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value)}
             size="small"
-            sx={{ width: 220 }}
+            sx={{ width: { xs: '100%', sm: 220 } }}
           >
             <MenuItem value="Efectivo">Efectivo</MenuItem>
             <MenuItem value="Mercado Pago">Mercado Pago</MenuItem>
@@ -215,7 +217,7 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
             <MenuItem value="Cuenta DNI">Cuenta DNI</MenuItem>
           </TextField>
           
-          <Box sx={{ textAlign: 'right' }}>
+          <Box sx={{ textAlign: { xs: 'left', sm: 'right' }, width: { xs: '100%', sm: 'auto' } }}>
             <Typography variant="h6" sx={{ fontWeight: 700, display: 'inline', mr: 2 }}>
               Total
             </Typography>

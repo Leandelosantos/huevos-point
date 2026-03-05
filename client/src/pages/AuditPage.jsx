@@ -164,8 +164,8 @@ const AuditPage = () => {
       {/* Logs Table */}
       <Card>
         <CardContent sx={{ p: 0 }}>
-          <TableContainer>
-            <Table size="small">
+          <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+            <Table size="small" sx={{ minWidth: { xs: 700, md: '100%' } }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Fecha/Hora</TableCell>

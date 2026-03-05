@@ -115,7 +115,7 @@ const StockPage = () => {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, mb: 4, flexWrap: 'wrap', gap: 2, overflow: 'hidden' }}>
         <Box>
           <Typography variant="h2" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.5 }}>
             Stock
@@ -124,7 +124,7 @@ const StockPage = () => {
             Gestión de inventario de productos
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
           <Button
             id="btn-import-stock"
             variant="outlined"
@@ -148,8 +148,8 @@ const StockPage = () => {
       {/* Products Table */}
       <Card>
         <CardContent sx={{ p: 0 }}>
-          <TableContainer>
-            <Table>
+          <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+            <Table sx={{ minWidth: { xs: 600, md: '100%' } }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Producto</TableCell>

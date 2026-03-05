@@ -185,7 +185,7 @@ const DashboardPage = () => {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ mb: 4, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2 }}>
+      <Box sx={{ mb: 4, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, overflow: 'hidden' }}>
         <Box>
           <Typography variant="h2" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.5 }}>
             Dashboard
@@ -194,7 +194,7 @@ const DashboardPage = () => {
             Control de caja general
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
           <TextField
             type="date"
             label="Fecha de movimientos"
@@ -348,8 +348,8 @@ const DashboardPage = () => {
             </Typography>
           </Box>
 
-              <TableContainer>
-              <Table>
+              <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+              <Table sx={{ minWidth: { xs: 700, md: '100%' } }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Hora</TableCell>

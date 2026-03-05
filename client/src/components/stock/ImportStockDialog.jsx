@@ -233,7 +233,7 @@ const ImportStockDialog = ({ open, onClose, onSuccess }) => {
               Se procesaron correctamente los datos del archivo.
             </Typography>
 
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: { xs: 2, sm: 4 } }}>
               <Box>
                 <Typography variant="h4" color="primary.main" fontWeight="bold">
                   {successResult.created}
