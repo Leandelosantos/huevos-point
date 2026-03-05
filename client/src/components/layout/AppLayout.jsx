@@ -32,42 +32,28 @@ const AppLayout = () => {
         onDrawerToggle={handleDrawerToggle}
       />
 
-      {/* Mobile/Tablet Top AppBar */}
+      {/* Floating Hamburger Button for Mobile */}
       {isMobile && (
-        <AppBar
-          position="fixed"
-          elevation={0}
+        <IconButton
+          color="inherit"
+          aria-label="abrir menú"
+          onClick={handleDrawerToggle}
           sx={{
-            background: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)',
-            borderBottom: '1px solid rgba(255,255,255,0.1)',
-            zIndex: theme.zIndex.drawer + 1,
+            position: 'fixed',
+            top: 16,
+            left: 16,
+            zIndex: theme.zIndex.drawer - 1, // Below the drawer but above other content
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            backdropFilter: 'blur(8px)',
+            color: '#1B4332',
+            '&:hover': {
+              backgroundColor: '#FFFFFF',
+            }
           }}
         >
-          <Toolbar sx={{ minHeight: { xs: 56 }, px: { xs: 1.5 } }}>
-            <IconButton
-              color="inherit"
-              aria-label="abrir menú"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ mr: 1.5 }}
-            >
-              <MenuRoundedIcon />
-            </IconButton>
-            <Box
-              sx={{
-                width: 30, height: 30, borderRadius: '8px',
-                background: 'rgba(255,255,255,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                mr: 1,
-              }}
-            >
-              <EggRoundedIcon sx={{ fontSize: 18, color: '#B7E4C7' }} />
-            </Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
-              Huevos Point
-            </Typography>
-          </Toolbar>
-        </AppBar>
+          <MenuRoundedIcon />
+        </IconButton>
       )}
 
       {/* Main Content Area */}
@@ -82,12 +68,11 @@ const AppLayout = () => {
           }),
         }}
       >
-        {/* Spacer for mobile AppBar */}
-        {isMobile && <Toolbar sx={{ minHeight: { xs: 56 } }} />}
         <Box
           sx={{
             flex: 1,
             p: { xs: 2, sm: 3, md: 4 },
+            pt: { xs: 8, sm: 3, md: 4 }, // Extra top padding on mobile to accommodate the floating button
             maxWidth: 1400,
             mx: 'auto',
           }}
