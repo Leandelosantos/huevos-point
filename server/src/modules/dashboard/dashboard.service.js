@@ -52,6 +52,7 @@ const getDailyMovements = async (date) => {
       type: 'VENTA',
       amount: parseFloat(sale.totalAmount),
       paymentMethod: sale.paymentMethod || 'Efectivo',
+      status: sale.status || 'COMPLETED',
       description: sale.items.map((item) =>
         `${item.product?.name || 'Producto'} x${item.quantity}`
       ).join(' + '),
@@ -67,6 +68,7 @@ const getDailyMovements = async (date) => {
       type: 'EGRESO',
       amount: parseFloat(expense.amount),
       paymentMethod: 'Caja',
+      status: 'COMPLETED',
       description: expense.concept,
       details: [],
       user: expense.user?.fullName || expense.user?.username,

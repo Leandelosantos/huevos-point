@@ -13,11 +13,14 @@ import {
   Divider,
   CircularProgress,
   Alert,
+  Link,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ShoppingCartRoundedIcon from '@mui/icons-material/ShoppingCartRounded';
+import QrCode2RoundedIcon from '@mui/icons-material/QrCode2Rounded';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import api from '../../services/api';
 
 const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
@@ -34,6 +37,7 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
   const [paymentMethod, setPaymentMethod] = useState('Efectivo');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [pointCheckout, setPointCheckout] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -41,6 +45,7 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
       setItems([{ ...EMPTY_ITEM }]);
       setPaymentMethod('Efectivo');
       setError('');
+      setPointCheckout(false);
     }
   }, [open]);
 
@@ -100,8 +105,13 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
           quantity: parseFloat(item.quantity),
         })),
       };
-      await api.post('/sales', payload);
-      onSuccess();
+      const response = await api.post('/sales', payload);
+      
+      if (response.data.data.pointStatus === 'waiting_for_payment') {
+        setPointCheckout(true);
+      } else {
+        onSuccess();
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Error al registrar la venta');
     } finally {
@@ -110,136 +120,168 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={pointCheckout ? null : onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <ShoppingCartRoundedIcon color="primary" />
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Registrar Venta
+            {pointCheckout ? 'Cobro con Mercado Pago Point' : 'Registrar Venta'}
           </Typography>
         </Box>
-        <IconButton onClick={onClose} size="small">
-          <CloseRoundedIcon />
-        </IconButton>
+        {!pointCheckout && (
+          <IconButton onClick={onClose} size="small">
+            <CloseRoundedIcon />
+          </IconButton>
+        )}
       </DialogTitle>
 
-      <DialogContent dividers>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+      {pointCheckout ? (
+        <>
+          <DialogContent dividers sx={{ textAlign: 'center', py: 5 }}>
+            <QrCode2RoundedIcon sx={{ fontSize: 80, color: '#009EE3', mb: 2 }} />
+            <Typography variant="h5" fontWeight="bold" gutterBottom color="#009EE3">
+              Monto enviado a la Terminal
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}>
+              Por favor, pide al cliente que <strong>deslice o acerque su tarjeta</strong> a la terminal física Point Smart.
+            </Typography>
+            
+            <CircularProgress size={30} sx={{ my: 2, color: '#009EE3' }} />
+            <Typography variant="body2" color="text.secondary">
+              Esperando confirmación del pago...
+            </Typography>
+            
+          </DialogContent>
+          <DialogActions sx={{ px: 3, py: 2, justifyContent: 'center' }}>
+            <Button 
+              variant="outlined" 
+              onClick={() => { setPointCheckout(false); onSuccess(); }}
+              sx={{ minWidth: 200 }}
+            >
+              Cerrar y Volver al Dashboard
+            </Button>
+          </DialogActions>
+        </>
+      ) : (
+        <>
+          <DialogContent dividers>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
 
-        {items.map((item, index) => {
-          const product = getProductById(item.productId);
-          const subtotal = getSubtotal(item);
-          const stockExceeded =
-            product && item.quantity && parseFloat(item.quantity) > parseFloat(product.stockQuantity);
+            {items.map((item, index) => {
+              const product = getProductById(item.productId);
+              const subtotal = getSubtotal(item);
+              const stockExceeded = product && item.quantity && parseFloat(item.quantity) > parseFloat(product.stockQuantity);
 
-          return (
-            <Box key={index} sx={{ mb: 2 }}>
-              {index > 0 && <Divider sx={{ mb: 2 }} />}
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5, alignItems: { xs: 'stretch', sm: 'flex-start' } }}>
-                <TextField
-                  select
-                  label="Producto"
-                  value={item.productId}
-                  onChange={(e) => handleItemChange(index, 'productId', e.target.value)}
-                  sx={{ flex: 2 }}
-                  size="small"
-                >
-                  {products.map((p) => (
-                    <MenuItem key={p.id} value={p.id}>
-                      {p.name} — {CURRENCY_FORMAT.format(p.unitPrice)} (Stock: {p.stockQuantity})
-                    </MenuItem>
-                  ))}
-                </TextField>
+              return (
+                <Box key={index} sx={{ mb: 2 }}>
+                  {index > 0 && <Divider sx={{ mb: 2 }} />}
+                  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5, alignItems: { xs: 'stretch', sm: 'flex-start' } }}>
+                    <TextField
+                      select
+                      label="Producto"
+                      value={item.productId}
+                      onChange={(e) => handleItemChange(index, 'productId', e.target.value)}
+                      sx={{ flex: 2 }}
+                      size="small"
+                    >
+                      {products.map((p) => (
+                        <MenuItem key={p.id} value={p.id}>
+                          {p.name} — {CURRENCY_FORMAT.format(p.unitPrice)} (Stock: {p.stockQuantity})
+                        </MenuItem>
+                      ))}
+                    </TextField>
 
-                <TextField
-                  label="Cantidad"
-                  type="number"
-                  value={item.quantity}
-                  onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                  error={stockExceeded}
-                  helperText={stockExceeded ? `Stock: ${product.stockQuantity}` : ''}
-                  sx={{ flex: 1 }}
-                  size="small"
-                  inputProps={{ min: 0, step: 0.5 }}
-                />
+                    <TextField
+                      label="Cantidad"
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                      error={stockExceeded}
+                      helperText={stockExceeded ? `Stock: ${product.stockQuantity}` : ''}
+                      sx={{ flex: 1 }}
+                      size="small"
+                      inputProps={{ min: 0, step: 0.5 }}
+                    />
 
-                <Box sx={{ flex: 0.8, textAlign: 'right', pt: 1 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                    Subtotal
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                    {CURRENCY_FORMAT.format(subtotal)}
-                  </Typography>
+                    <Box sx={{ flex: 0.8, textAlign: 'right', pt: 1 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                        Subtotal
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                        {CURRENCY_FORMAT.format(subtotal)}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', width: { xs: '100%', sm: 'auto' } }}>
+                      <IconButton
+                        onClick={() => removeItem(index)}
+                        disabled={items.length <= 1}
+                        size="small"
+                        sx={{ mt: { xs: 0, sm: 0.5 } }}
+                      >
+                        <DeleteRoundedIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Box>
                 </Box>
+              );
+            })}
 
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', width: { xs: '100%', sm: 'auto' } }}>
-                  <IconButton
-                    onClick={() => removeItem(index)}
-                    disabled={items.length <= 1}
-                    size="small"
-                    sx={{ mt: { xs: 0, sm: 0.5 } }}
-                  >
-                    <DeleteRoundedIcon fontSize="small" />
-                  </IconButton>
-                </Box>
+            <Button
+              startIcon={<AddRoundedIcon />}
+              onClick={addItem}
+              size="small"
+              sx={{ mt: 1 }}
+            >
+              Agregar producto
+            </Button>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, mb: 2 }}>
+              <TextField
+                select
+                label="Método de pago"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                size="small"
+                sx={{ width: { xs: '100%', sm: 220 } }}
+              >
+                <MenuItem value="Efectivo">Efectivo</MenuItem>
+                <MenuItem value="Mercado Pago">Mercado Pago</MenuItem>
+                <MenuItem value="Transferencia">Transferencia</MenuItem>
+                <MenuItem value="Cuenta DNI">Cuenta DNI</MenuItem>
+              </TextField>
+              
+              <Box sx={{ textAlign: { xs: 'left', sm: 'right' }, width: { xs: '100%', sm: 'auto' } }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, display: 'inline', mr: 2 }}>
+                  Total
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', display: 'inline' }}>
+                  {CURRENCY_FORMAT.format(getTotal())}
+                </Typography>
               </Box>
             </Box>
-          );
-        })}
+          </DialogContent>
 
-        <Button
-          startIcon={<AddRoundedIcon />}
-          onClick={addItem}
-          size="small"
-          sx={{ mt: 1 }}
-        >
-          Agregar producto
-        </Button>
-
-        <Divider sx={{ my: 2 }} />
-
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, mb: 2 }}>
-          <TextField
-            select
-            label="Método de pago"
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-            size="small"
-            sx={{ width: { xs: '100%', sm: 220 } }}
-          >
-            <MenuItem value="Efectivo">Efectivo</MenuItem>
-            <MenuItem value="Mercado Pago">Mercado Pago</MenuItem>
-            <MenuItem value="Transferencia">Transferencia</MenuItem>
-            <MenuItem value="Cuenta DNI">Cuenta DNI</MenuItem>
-          </TextField>
-          
-          <Box sx={{ textAlign: { xs: 'left', sm: 'right' }, width: { xs: '100%', sm: 'auto' } }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, display: 'inline', mr: 2 }}>
-              Total
-            </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main', display: 'inline' }}>
-              {CURRENCY_FORMAT.format(getTotal())}
-            </Typography>
-          </Box>
-        </Box>
-      </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} color="inherit">
-          Cancelar
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={submitting || !isValid()}
-        >
-          {submitting ? <CircularProgress size={22} color="inherit" /> : 'Confirmar Venta'}
-        </Button>
-      </DialogActions>
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button onClick={onClose} color="inherit">
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              disabled={submitting || !isValid()}
+            >
+              {submitting ? <CircularProgress size={22} color="inherit" /> : 'Confirmar Venta'}
+            </Button>
+          </DialogActions>
+        </>
+      )}
     </Dialog>
   );
 };

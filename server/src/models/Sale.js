@@ -24,6 +24,16 @@ const Sale = sequelize.define('Sale', {
     defaultValue: 'Efectivo',
     field: 'payment_method',
   },
+  status: {
+    type: DataTypes.ENUM('PENDING', 'COMPLETED', 'CANCELLED'),
+    allowNull: false,
+    defaultValue: 'COMPLETED',
+  },
+  mpPreferenceId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'mp_preference_id',
+  },
   saleDate: {
     type: DataTypes.DATEONLY,
     allowNull: false,

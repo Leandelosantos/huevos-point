@@ -396,8 +396,21 @@ const DashboardPage = () => {
                                 fontSize: '0.65rem',
                                 backgroundColor: mov.type === 'VENTA' ? 'rgba(45, 106, 79, 0.1)' : 'rgba(198, 40, 40, 0.1)',
                                 color: mov.type === 'VENTA' ? '#2D6A4F' : '#C62828',
+                                opacity: mov.status === 'PENDING' ? 0.6 : 1,
                               }}
                             />
+                            {mov.status === 'PENDING' && (
+                              <Chip
+                                label="PENDIENTE PAGO"
+                                size="small"
+                                sx={{
+                                  fontWeight: 700,
+                                  fontSize: '0.6rem',
+                                  backgroundColor: 'rgba(230, 81, 0, 0.1)',
+                                  color: '#E65100',
+                                }}
+                              />
+                            )}
                             {mov.type === 'EGRESO' && (
                               <Typography variant="body2" sx={{ maxWidth: 150 }} noWrap>
                                 {mov.description}

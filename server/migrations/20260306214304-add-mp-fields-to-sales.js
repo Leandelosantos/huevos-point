@@ -1,0 +1,23 @@
+'use strict';
+
+/** @type {import('sequelize-cli').Migration} */
+module.exports = {
+  async up (queryInterface, Sequelize) {
+    await queryInterface.addColumn('sales', 'status', {
+      type: Sequelize.ENUM('PENDING', 'COMPLETED', 'CANCELLED'),
+      allowNull: false,
+      defaultValue: 'COMPLETED'
+    });
+    
+    await queryInterface.addColumn('sales', 'mp_preference_id', {
+      type: Sequelize.STRING,
+      allowNull: true
+    });
+  },
+
+  async down (queryInterface, Sequelize) {
+    await queryInterface.removeColumn('sales', 'mp_preference_id');
+    await queryInterface.removeColumn('sales', 'status');
+    await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_sales_status";');
+  }
+};
