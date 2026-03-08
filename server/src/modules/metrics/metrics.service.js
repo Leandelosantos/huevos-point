@@ -4,38 +4,30 @@ const sequelize = require('../../config/database');
 
 class MetricsService {
   async getTopProductsForMonth(startDate, endDate) {
-    const topProducts = await SaleItem.findAll({
-      attributes: [
-        'productId',
-        [sequelize.fn('SUM', sequelize.col('quantity')), 'totalSold'],
-      ],
-      include: [
-        {
-          model: Sale,
-          as: 'sale',
-          attributes: [],
-          where: {
-            status: 'COMPLETED',
-            saleDate: {
-              [Op.between]: [startDate, endDate],
-            },
-          },
-        },
-        {
-          model: Product,
-          as: 'product',
-          attributes: ['name'],
-        },
-      ],
-      group: ['productId', 'product.id'],
-      order: [[sequelize.col('totalSold'), 'DESC']],
-      limit: 10,
+    const query = `
+      SELECT 
+        p.id AS "productId", 
+        p.name AS "name", 
+        SUM(si.quantity) AS "totalSold"
+      FROM sale_items si
+      INNER JOIN sales s ON si.sale_id = s.id
+      INNER JOIN products p ON si.product_id = p.id
+      WHERE s.status = 'COMPLETED'
+        AND s.sale_date BETWEEN :startDate AND :endDate
+      GROUP BY p.id, p.name
+      ORDER BY "totalSold" DESC
+      LIMIT 10
+    `;
+
+    const topProducts = await sequelize.query(query, {
+      replacements: { startDate, endDate },
+      type: sequelize.QueryTypes.SELECT,
     });
 
     return topProducts.map((item) => ({
       productId: item.productId,
-      name: item.product.name,
-      totalSold: parseFloat(item.dataValues.totalSold),
+      name: item.name,
+      totalSold: parseFloat(item.totalSold),
     }));
   }
 
