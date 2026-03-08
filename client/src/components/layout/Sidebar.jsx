@@ -18,6 +18,7 @@ import {
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import InventoryRoundedIcon from '@mui/icons-material/InventoryRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
 import { useAuth } from '../../context/AuthContext';
