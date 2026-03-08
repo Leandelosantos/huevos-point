@@ -76,11 +76,28 @@ const MetricsPage = () => {
                   <Typography variant="body2" color="text.secondary">No hay ventas registradas este mes.</Typography>
                 </Box>
               ) : (
-                <Box sx={{ height: 300, width: '100%' }}>
+                <Box sx={{ width: '100%' }}>
                   <BarChart
-                    xAxis={[{ scaleType: 'band', data: metrics.currentMonthTop.map(m => m.name), tickLabelStyle: { fontSize: 11, angle: -15, textAnchor: 'end' } }]}
-                    series={[{ data: metrics.currentMonthTop.map(m => m.totalSold), label: 'Ventas', color: '#52B788' }]}
-                    margin={{ top: 20, bottom: 60, left: 40, right: 10 }}
+                    height={320}
+                    dataset={metrics.currentMonthTop}
+                    xAxis={[{ 
+                      scaleType: 'band', 
+                      dataKey: 'name',
+                      tickLabelStyle: { 
+                        angle: -25, 
+                        textAnchor: 'end',
+                        fontSize: 11
+                      }
+                    }]}
+                    series={[{ 
+                      dataKey: 'totalSold', 
+                      label: 'Unidades Vendidas', 
+                      color: '#52B788' 
+                    }]}
+                    margin={{ top: 20, bottom: 90, left: 40, right: 20 }}
+                    slotProps={{
+                      legend: { hidden: true }
+                    }}
                   />
                 </Box>
               )}
@@ -103,11 +120,28 @@ const MetricsPage = () => {
                   <Typography variant="body2" color="text.secondary">No hay ventas registradas el mes pasado.</Typography>
                 </Box>
               ) : (
-                <Box sx={{ height: 300, width: '100%' }}>
+                <Box sx={{ width: '100%' }}>
                   <BarChart
-                    xAxis={[{ scaleType: 'band', data: metrics.previousMonthTop.map(m => m.name), tickLabelStyle: { fontSize: 11, angle: -15, textAnchor: 'end' } }]}
-                    series={[{ data: metrics.previousMonthTop.map(m => m.totalSold), label: 'Ventas', color: '#74C69D' }]}
-                    margin={{ top: 20, bottom: 60, left: 40, right: 10 }}
+                    height={320}
+                    dataset={metrics.previousMonthTop}
+                    xAxis={[{ 
+                      scaleType: 'band', 
+                      dataKey: 'name',
+                      tickLabelStyle: { 
+                        angle: -25, 
+                        textAnchor: 'end',
+                        fontSize: 11
+                      }
+                    }]}
+                    series={[{ 
+                      dataKey: 'totalSold', 
+                      label: 'Unidades Vendidas', 
+                      color: '#74C69D' 
+                    }]}
+                    margin={{ top: 20, bottom: 90, left: 40, right: 20 }}
+                    slotProps={{
+                      legend: { hidden: true }
+                    }}
                   />
                 </Box>
               )}
