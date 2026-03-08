@@ -202,6 +202,7 @@ const DashboardPage = () => {
             onChange={(e) => setSelectedDate(e.target.value)}
             size="small"
             InputLabelProps={{ shrink: true }}
+            inputProps={{ max: dayjs().format('YYYY-MM-DD') }}
             sx={{ width: { xs: '100%', sm: 180 }, bgcolor: 'background.paper', mb: { xs: 1, sm: 0 } }}
           />
           {isAdmin && (
