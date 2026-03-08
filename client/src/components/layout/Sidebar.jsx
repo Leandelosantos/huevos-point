@@ -18,11 +18,10 @@ import {
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import InventoryRoundedIcon from '@mui/icons-material/InventoryRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
-import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
-import EggRoundedIcon from '@mui/icons-material/EggRounded';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
 import { useAuth } from '../../context/AuthContext';
+import logo from '../../assets/logo.png';
 
 const DRAWER_WIDTH = 260;
 const COLLAPSED_WIDTH = 80;
@@ -85,7 +84,12 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => 
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              <EggRoundedIcon sx={{ fontSize: 20, color: '#B7E4C7' }} />
+            <Box
+              component="img"
+              src={logo}
+              alt="Huevos Point Logo"
+              sx={{ width: 24, height: 24 }}
+            />
             </Box>
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#FFFFFF', lineHeight: 1.2 }}>

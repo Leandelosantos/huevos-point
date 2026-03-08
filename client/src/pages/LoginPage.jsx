@@ -16,8 +16,8 @@ import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded';
 import VisibilityOffRoundedIcon from '@mui/icons-material/VisibilityOffRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
-import EggRoundedIcon from '@mui/icons-material/EggRounded';
 import { useAuth } from '../context/AuthContext';
+import logo from '../assets/logo.png';
 
 const LoginPage = () => {
   const { login, loading } = useAuth();
@@ -102,7 +102,12 @@ const LoginPage = () => {
               border: '1px solid rgba(255,255,255,0.15)',
             }}
           >
-            <EggRoundedIcon sx={{ fontSize: 48, color: '#B7E4C7' }} />
+            <Box
+              component="img"
+              src={logo}
+              alt="Huevos Point Logo"
+              sx={{ width: 64, height: 64 }}
+            />
           </Box>
 
           <Typography
@@ -179,7 +184,12 @@ const LoginPage = () => {
                 justifyContent: 'center',
               }}
             >
-              <EggRoundedIcon sx={{ fontSize: 36, color: '#FFFFFF' }} />
+              <Box
+                component="img"
+                src={logo}
+                alt="Huevos Point Logo"
+                sx={{ width: 48, height: 48 }}
+              />
             </Box>
           </Box>
 

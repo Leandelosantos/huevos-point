@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Box, AppBar, Toolbar, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
-import EggRoundedIcon from '@mui/icons-material/EggRounded';
 import Sidebar, { DRAWER_WIDTH } from './Sidebar';
 
 const COLLAPSED_WIDTH = 80;
