@@ -16,6 +16,16 @@ app.get('/api/sync-db', async (req, res) => {
   }
 });
 
+app.get('/api/dump-sales', async (req, res) => {
+  try {
+    const sequelize = require('../src/config/database');
+    const logs = await sequelize.query('SELECT id, sale_date, status, total_amount FROM sales WHERE status = \'COMPLETED\' ORDER BY sale_date DESC LIMIT 50', { type: sequelize.QueryTypes.SELECT });
+    res.status(200).json({ success: true, count: logs.length, data: logs });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Wrap the app to catch unhandled errors that cause Vercel 500 crashes
 module.exports = async (req, res) => {
   try {
