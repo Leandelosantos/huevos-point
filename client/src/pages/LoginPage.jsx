@@ -132,7 +132,7 @@ const LoginPage = () => {
               mx: 'auto',
             }}
           >
-            Sistema integral de gestión de ventas, egresos y stock para tu negocio
+            Sistema integral de gestión
           </Typography>
 
           {/* Feature badges */}
