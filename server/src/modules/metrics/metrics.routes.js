@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const metricsController = require('./metrics.controller');
-const { protect, restrictTo } = require('../../middlewares/authMiddleware');
+const authMiddleware = require('../../middlewares/authMiddleware');
+const { requireRole } = require('../../middlewares/roleMiddleware');
 
-router.use(protect);
+router.use(authMiddleware);
 
 router.get(
   '/',
-  restrictTo('admin'),
+  requireRole('admin'),
   metricsController.getMetrics.bind(metricsController)
 );
 
