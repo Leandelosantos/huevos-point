@@ -1,7 +1,6 @@
 const { Op } = require('sequelize');
 const { Product, SaleItem, Sale } = require('../../models');
 const sequelize = require('../../config/database');
-const dayjs = require('dayjs');
 
 class MetricsService {
   async getTopProductsForMonth(startDate, endDate) {
@@ -41,14 +40,17 @@ class MetricsService {
   }
 
   async getTopProductsCurrentMonth() {
-    const startOfMonth = dayjs().startOf('month').format('YYYY-MM-DD');
-    const endOfMonth = dayjs().endOf('month').format('YYYY-MM-DD');
+    const now = new Date();
+    // month is 0-indexed, so getMonth() is current month. Day 1 is start, Day 0 of next month is end.
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
     return this.getTopProductsForMonth(startOfMonth, endOfMonth);
   }
 
   async getTopProductsPreviousMonth() {
-    const startOfMonth = dayjs().subtract(1, 'month').startOf('month').format('YYYY-MM-DD');
-    const endOfMonth = dayjs().subtract(1, 'month').endOf('month').format('YYYY-MM-DD');
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
     return this.getTopProductsForMonth(startOfMonth, endOfMonth);
   }
 
