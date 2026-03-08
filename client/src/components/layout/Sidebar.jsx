@@ -21,6 +21,7 @@ import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import EggRoundedIcon from '@mui/icons-material/EggRounded';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
+import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
 import { useAuth } from '../../context/AuthContext';
 
 const DRAWER_WIDTH = 260;
@@ -40,6 +41,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => 
       ? [
           { label: 'Stock', icon: <InventoryRoundedIcon />, path: '/stock' },
           { label: 'Auditoría', icon: <HistoryRoundedIcon />, path: '/audit' },
+          { label: 'Métricas', icon: <BarChartRoundedIcon />, path: '/metrics' },
         ]
       : []),
   ];

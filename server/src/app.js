@@ -15,6 +15,7 @@ const salesRoutes = require('./modules/sales/sales.routes');
 const expensesRoutes = require('./modules/expenses/expenses.routes');
 const auditRoutes = require('./modules/audit/audit.routes');
 const mercadopagoRoutes = require('./modules/mercadopago/mercadopago.routes');
+const metricsRoutes = require('./modules/metrics/metrics.routes');
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use('/api/sales', salesRoutes);
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api/mercadopago', mercadopagoRoutes);
+app.use('/api/metrics', metricsRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import StockPage from './pages/StockPage';
 import AuditPage from './pages/AuditPage';
+import MetricsPage from './pages/MetricsPage';
 
 const App = () => {
   return (
@@ -41,6 +42,14 @@ const App = () => {
                 element={
                   <ProtectedRoute requiredRole="admin">
                     <AuditPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/metrics"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <MetricsPage />
                   </ProtectedRoute>
                 }
               />
