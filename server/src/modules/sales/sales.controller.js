@@ -3,13 +3,13 @@ const { createAuditLog } = require('../../utils/auditLogger');
 
 const register = async (req, res, next) => {
   try {
-    const { items, paymentMethod } = req.body;
+    const { items, paymentMethod, saleDate } = req.body;
     
     if (!paymentMethod) {
       return res.status(400).json({ success: false, message: 'El método de pago es requerido' });
     }
 
-    const result = await salesService.registerSale(req.user.id, items, paymentMethod, req.tenantId);
+    const result = await salesService.registerSale(req.user.id, items, paymentMethod, req.tenantId, saleDate);
 
     await createAuditLog({
       tenantId: req.tenantId || null,

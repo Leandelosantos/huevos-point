@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import dayjs from 'dayjs';
 import {
   Dialog,
   DialogTitle,
@@ -35,6 +36,7 @@ const ExpenseModal = ({ open, onClose, onSuccess }) => {
       await api.post('/expenses', {
         concept: formData.concept,
         amount: parseFloat(formData.amount),
+        expenseDate: dayjs().format('YYYY-MM-DD'),
       });
       reset();
       onSuccess();

@@ -1,11 +1,11 @@
 const expensesRepository = require('./expenses.repository');
 
-const registerExpense = async (userId, concept, amount, tenantId) => {
+const registerExpense = async (userId, concept, amount, tenantId, expenseDate) => {
   return expensesRepository.create({
     userId,
     concept,
     amount,
-    expenseDate: new Date(),
+    expenseDate: expenseDate || new Date(),
   }, tenantId);
 };
 

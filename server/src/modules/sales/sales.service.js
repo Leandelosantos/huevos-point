@@ -3,7 +3,7 @@ const salesRepository = require('./sales.repository');
 const { Product } = require('../../models');
 const AppError = require('../../utils/AppError');
 
-const registerSale = async (userId, items, paymentMethod, tenantId) => {
+const registerSale = async (userId, items, paymentMethod, tenantId, saleDate) => {
   const transaction = await sequelize.transaction();
 
   try {
@@ -61,7 +61,7 @@ const registerSale = async (userId, items, paymentMethod, tenantId) => {
         userId, 
         totalAmount, 
         paymentMethod, 
-        saleDate: new Date(),
+        saleDate: saleDate || new Date(),
         status: 'COMPLETED'
       },
       saleItems,

@@ -3,8 +3,8 @@ const { createAuditLog } = require('../../utils/auditLogger');
 
 const register = async (req, res, next) => {
   try {
-    const { concept, amount } = req.body;
-    const expense = await expensesService.registerExpense(req.user.id, concept, amount, req.tenantId);
+    const { concept, amount, expenseDate } = req.body;
+    const expense = await expensesService.registerExpense(req.user.id, concept, amount, req.tenantId, expenseDate);
 
     await createAuditLog({
       tenantId: req.tenantId || null,

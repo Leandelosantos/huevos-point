@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import dayjs from 'dayjs';
 import {
   Dialog,
   DialogTitle,
@@ -99,6 +100,7 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
     try {
       const payload = {
         paymentMethod,
+        saleDate: dayjs().format('YYYY-MM-DD'),
         items: items.map((item) => ({
           productId: parseInt(item.productId, 10),
           quantity: parseFloat(item.quantity),
