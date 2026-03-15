@@ -42,7 +42,7 @@ const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
 });
 
 const DashboardPage = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, activeTenant } = useAuth();
   const [summary, setSummary] = useState(null);
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -188,7 +188,7 @@ const DashboardPage = () => {
       <Box sx={{ mb: 4, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, overflow: 'hidden' }}>
         <Box>
           <Typography variant="h2" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.5 }}>
-            Dashboard
+            Dashboard {activeTenant ? `[${activeTenant.name}]` : ''}
           </Typography>
           <Typography variant="body1" sx={{ color: 'text.secondary' }}>
             Control de caja general
