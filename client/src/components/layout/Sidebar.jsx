@@ -12,36 +12,80 @@ import {
   Divider,
   Avatar,
   IconButton,
+  Button,
+  Menu,
+  MenuItem,
+  Chip,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded';
 import InventoryRoundedIcon from '@mui/icons-material/InventoryRounded';
+import ShoppingCartRoundedIcon from '@mui/icons-material/ShoppingCartRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
+import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 import logo from '../../assets/logo.png';
 
 const DRAWER_WIDTH = 260;
 const COLLAPSED_WIDTH = 80;
 
 const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, isSuperAdmin, activeTenant, switchTenant, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
+
+  // Anchor para el menu de cambio de sucursal
+  const [anchorEl, setAnchorEl] = useState(null);
+  const openMenu = Boolean(anchorEl);
+
+  const handleClickMenu = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleSwitchTenant = async (tenant) => {
+    try {
+      await api.post('/audit-logs/action', {
+        actionType: 'CAMBIAR_SUCURSAL',
+        description: `El usuario ingresó a la sucursal: ${tenant.name}`,
+        entity: 'tenant',
+        entityId: tenant.id
+      });
+    } catch (err) {
+      console.warn('No se pudo registrar en auditoría el cambio de sucursal', err);
+    }
+    switchTenant(tenant);
+    handleCloseMenu();
+    // Recargar vista para refetch con nuevo header
+    window.location.reload();
+  };
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // ... menuItems, handleNavigate, handleLogout logic remains identical
   const menuItems = [
     { label: 'Inicio', icon: <DashboardRoundedIcon />, path: '/' },
-    ...(isAdmin
+    ...(isAdmin || isSuperAdmin
       ? [
           { label: 'Stock', icon: <InventoryRoundedIcon />, path: '/stock' },
+          { label: 'Compras', icon: <ShoppingCartRoundedIcon />, path: '/purchases' },
           { label: 'Auditoría', icon: <HistoryRoundedIcon />, path: '/audit' },
           { label: 'Métricas', icon: <BarChartRoundedIcon />, path: '/metrics' },
+        ]
+      : []),
+    ...(isSuperAdmin
+      ? [
+          { label: 'Usuarios', icon: <PeopleRoundedIcon />, path: '/users' },
         ]
       : []),
   ];
@@ -93,9 +137,20 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => 
             />
             </Box>
             <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#FFFFFF', lineHeight: 1.2 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#FFFFFF', lineHeight: 1.2, mb: 0.5 }}>
                 Huevos Point
               </Typography>
+              <Chip 
+                label={activeTenant?.name || 'Cargando...'} 
+                size="small" 
+                sx={{ 
+                  backgroundColor: '#B7E4C7', 
+                  color: '#1B4332', 
+                  fontWeight: 800, 
+                  fontSize: '0.65rem',
+                  height: 20
+                }}
+              />
             </Box>
           </Box>
         )}
@@ -173,11 +228,72 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => 
                 {user?.fullName || 'Usuario'}
               </Typography>
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.65rem' }}>
-                {user?.role === 'admin' ? 'Administrador' : 'Empleado'}
+                {user?.role === 'superadmin' ? 'Super Admin' : user?.role === 'admin' ? 'Administrador' : 'Empleado'}
               </Typography>
             </Box>
           )}
         </Box>
+
+        {/* M:N Menu Cambio de Sucursal */}
+        {user?.tenants?.length > 1 && (
+          <Box sx={{ p: 1, pt: 0 }}>
+            {(!isMobile ? desktopOpen : true) && (
+              <Button
+                fullWidth
+                onClick={handleClickMenu}
+                endIcon={<ExpandMoreIcon />}
+                startIcon={<StorefrontIcon />}
+                sx={{
+                  justifyContent: 'space-between',
+                  color: 'rgba(255,255,255,0.7)',
+                  fontSize: '0.8rem',
+                  textTransform: 'none',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '10px',
+                  mb: 1,
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    color: '#fff',
+                  }
+                }}
+              >
+                Cambiar Sucursal
+              </Button>
+            )}
+
+            <Menu
+              anchorEl={anchorEl}
+              open={openMenu}
+              onClose={handleCloseMenu}
+              PaperProps={{
+                sx: {
+                  bgcolor: '#1B4332',
+                  color: '#fff',
+                  mt: -1,
+                  minWidth: 200,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                }
+              }}
+              transformOrigin={{ horizontal: 'center', vertical: 'bottom' }}
+              anchorOrigin={{ horizontal: 'center', vertical: 'top' }}
+            >
+              {user?.tenants?.map((t) => (
+                <MenuItem 
+                  key={t.id} 
+                  onClick={() => handleSwitchTenant(t)}
+                  selected={activeTenant?.id === t.id}
+                  sx={{
+                    fontSize: '0.85rem',
+                    '&.Mui-selected': { bgcolor: 'rgba(82, 183, 136, 0.3)' },
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+                  }}
+                >
+                  {t.name}
+                </MenuItem>
+              ))}
+            </Menu>
+          </Box>
+        )}
 
         <ListItemButton
           onClick={handleLogout}

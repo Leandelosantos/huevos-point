@@ -17,10 +17,16 @@ export const AuthProvider = ({ children }) => {
     return stored ? JSON.parse(stored) : null;
   });
 
+  const [activeTenant, setActiveTenant] = useState(() => {
+    const stored = sessionStorage.getItem('activeTenant');
+    return stored ? JSON.parse(stored) : null;
+  });
+
   const [loading, setLoading] = useState(false);
 
   const isAuthenticated = Boolean(user);
-  const isAdmin = user?.role === 'admin';
+  const isSuperAdmin = user?.role === 'superadmin';
+  const isAdmin = user?.role === 'admin' || isSuperAdmin;
 
   const login = useCallback(async (username, password) => {
     setLoading(true);
@@ -31,6 +37,15 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.setItem('token', token);
       sessionStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
+
+      if (userData.tenants && userData.tenants.length > 0) {
+        const defaultTenant = userData.tenants[0];
+        sessionStorage.setItem('activeTenant', JSON.stringify(defaultTenant));
+        setActiveTenant(defaultTenant);
+      } else {
+        sessionStorage.removeItem('activeTenant');
+        setActiveTenant(null);
+      }
 
       return { success: true };
     } catch (error) {
@@ -49,8 +64,15 @@ export const AuthProvider = ({ children }) => {
     } finally {
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('user');
+      sessionStorage.removeItem('activeTenant');
       setUser(null);
+      setActiveTenant(null);
     }
+  }, []);
+
+  const switchTenant = useCallback((tenant) => {
+    sessionStorage.setItem('activeTenant', JSON.stringify(tenant));
+    setActiveTenant(tenant);
   }, []);
 
   const value = useMemo(() => ({
@@ -58,9 +80,12 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated,
     isAdmin,
+    isSuperAdmin,
+    activeTenant,
     login,
     logout,
-  }), [user, loading, isAuthenticated, isAdmin, login, logout]);
+    switchTenant,
+  }), [user, loading, isAuthenticated, isAdmin, isSuperAdmin, activeTenant, login, logout, switchTenant]);
 
   return (
     <AuthContext.Provider value={value}>

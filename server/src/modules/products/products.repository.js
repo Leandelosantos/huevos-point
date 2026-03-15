@@ -1,35 +1,35 @@
 const { Product } = require('../../models');
 
-const findAllActive = async () => {
+const findAllActive = async (tenantId) => {
   return Product.findAll({
-    where: { isActive: true },
+    where: { isActive: true, tenantId },
     order: [['name', 'ASC']],
   });
 };
 
-const findById = async (id) => {
-  return Product.findByPk(id);
+const findById = async (id, tenantId) => {
+  return Product.findOne({ where: { id, tenantId } });
 };
 
-const findByName = async (name, options = {}) => {
+const findByName = async (name, tenantId, options = {}) => {
   return Product.findOne({
-    where: { name },
+    where: { name, tenantId },
     ...options
   });
 };
 
-const create = async (data, options = {}) => {
-  return Product.create(data, options);
+const create = async (data, tenantId, options = {}) => {
+  return Product.create({ ...data, tenantId }, options);
 };
 
-const update = async (id, data, options = {}) => {
-  const product = await Product.findByPk(id, options);
+const update = async (id, data, tenantId, options = {}) => {
+  const product = await Product.findOne({ where: { id, tenantId }, ...options });
   if (!product) return null;
   return product.update(data, options);
 };
 
-const softDelete = async (id, options = {}) => {
-  const product = await Product.findByPk(id, options);
+const softDelete = async (id, tenantId, options = {}) => {
+  const product = await Product.findOne({ where: { id, tenantId }, ...options });
   if (!product) return null;
   return product.update({ isActive: false }, options);
 };

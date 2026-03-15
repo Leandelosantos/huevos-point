@@ -9,6 +9,8 @@ import DashboardPage from './pages/DashboardPage';
 import StockPage from './pages/StockPage';
 import AuditPage from './pages/AuditPage';
 import MetricsPage from './pages/MetricsPage';
+import UsersPage from './pages/UsersPage';
+import PurchasesPage from './pages/PurchasesPage';
 
 const App = () => {
   return (
@@ -38,6 +40,14 @@ const App = () => {
                 }
               />
               <Route
+                path="/purchases"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <PurchasesPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/audit"
                 element={
                   <ProtectedRoute requiredRole="admin">
@@ -50,6 +60,14 @@ const App = () => {
                 element={
                   <ProtectedRoute requiredRole="admin">
                     <MetricsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users"
+                element={
+                  <ProtectedRoute requiredRole="superadmin">
+                    <UsersPage />
                   </ProtectedRoute>
                 }
               />

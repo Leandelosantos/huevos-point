@@ -19,7 +19,6 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ShoppingCartRoundedIcon from '@mui/icons-material/ShoppingCartRounded';
-import QrCode2RoundedIcon from '@mui/icons-material/QrCode2Rounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import api from '../../services/api';
 
@@ -29,7 +28,7 @@ const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
   minimumFractionDigits: 2,
 });
 
-const EMPTY_ITEM = { productId: '', quantity: '' };
+const EMPTY_ITEM = { productId: '', quantity: '', discount: '' };
 
 const SaleModal = ({ open, onClose, onSuccess }) => {
   const [products, setProducts] = useState([]);
@@ -37,7 +36,6 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
   const [paymentMethod, setPaymentMethod] = useState('Efectivo');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [pointCheckout, setPointCheckout] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -45,7 +43,6 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
       setItems([{ ...EMPTY_ITEM }]);
       setPaymentMethod('Efectivo');
       setError('');
-      setPointCheckout(false);
     }
   }, [open]);
 
@@ -80,7 +77,9 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
   const getSubtotal = (item) => {
     const product = getProductById(item.productId);
     if (!product || !item.quantity) return 0;
-    return parseFloat(product.unitPrice) * parseFloat(item.quantity);
+    const base = parseFloat(product.unitPrice) * parseFloat(item.quantity);
+    const discount = parseFloat(item.discount || 0);
+    return discount > 0 ? base * (1 - discount / 100) : base;
   };
 
   const getTotal = () => items.reduce((sum, item) => sum + getSubtotal(item), 0);
@@ -103,15 +102,11 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
         items: items.map((item) => ({
           productId: parseInt(item.productId, 10),
           quantity: parseFloat(item.quantity),
+          discount: parseFloat(item.discount || 0),
         })),
       };
       const response = await api.post('/sales', payload);
-      
-      if (response.data.data.pointStatus === 'waiting_for_payment') {
-        setPointCheckout(true);
-      } else {
-        onSuccess();
-      }
+      onSuccess();
     } catch (err) {
       setError(err.response?.data?.message || 'Error al registrar la venta');
     } finally {
@@ -120,51 +115,20 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
   };
 
   return (
-    <Dialog open={open} onClose={pointCheckout ? null : onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <ShoppingCartRoundedIcon color="primary" />
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            {pointCheckout ? 'Cobro con Mercado Pago Point' : 'Registrar Venta'}
+            Registrar Venta
           </Typography>
         </Box>
-        {!pointCheckout && (
-          <IconButton onClick={onClose} size="small">
-            <CloseRoundedIcon />
-          </IconButton>
-        )}
+        <IconButton onClick={onClose} size="small">
+          <CloseRoundedIcon />
+        </IconButton>
       </DialogTitle>
 
-      {pointCheckout ? (
-        <>
-          <DialogContent dividers sx={{ textAlign: 'center', py: 5 }}>
-            <QrCode2RoundedIcon sx={{ fontSize: 80, color: '#009EE3', mb: 2 }} />
-            <Typography variant="h5" fontWeight="bold" gutterBottom color="#009EE3">
-              Monto enviado a la Terminal
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}>
-              Por favor, pide al cliente que <strong>deslice o acerque su tarjeta</strong> a la terminal física Point Smart.
-            </Typography>
-            
-            <CircularProgress size={30} sx={{ my: 2, color: '#009EE3' }} />
-            <Typography variant="body2" color="text.secondary">
-              Esperando confirmación del pago...
-            </Typography>
-            
-          </DialogContent>
-          <DialogActions sx={{ px: 3, py: 2, justifyContent: 'center' }}>
-            <Button 
-              variant="outlined" 
-              onClick={() => { setPointCheckout(false); onSuccess(); }}
-              sx={{ minWidth: 200 }}
-            >
-              Cerrar y Volver al Dashboard
-            </Button>
-          </DialogActions>
-        </>
-      ) : (
-        <>
-          <DialogContent dividers>
+      <DialogContent dividers>
             {error && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {error}
@@ -205,6 +169,16 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
                       sx={{ flex: 1 }}
                       size="small"
                       inputProps={{ min: 0, step: 0.5 }}
+                    />
+
+                    <TextField
+                      label="Desc. %"
+                      type="number"
+                      value={item.discount}
+                      onChange={(e) => handleItemChange(index, 'discount', e.target.value)}
+                      sx={{ flex: 0.6 }}
+                      size="small"
+                      inputProps={{ min: 0, max: 100, step: 1 }}
                     />
 
                     <Box sx={{ flex: 0.8, textAlign: 'right', pt: 1 }}>
@@ -280,8 +254,6 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
               {submitting ? <CircularProgress size={22} color="inherit" /> : 'Confirmar Venta'}
             </Button>
           </DialogActions>
-        </>
-      )}
     </Dialog>
   );
 };

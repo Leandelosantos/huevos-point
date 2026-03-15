@@ -7,6 +7,7 @@ const login = async (req, res, next) => {
     const result = await authService.login(username, password);
 
     await createAuditLog({
+      tenantId: req.tenantId || null,
       userId: result.user.id,
       username: result.user.username,
       actionType: 'LOGIN',
@@ -27,6 +28,7 @@ const login = async (req, res, next) => {
 const logout = async (req, res, next) => {
   try {
     await createAuditLog({
+      tenantId: req.tenantId || null,
       userId: req.user.id,
       username: req.user.username,
       actionType: 'LOGOUT',

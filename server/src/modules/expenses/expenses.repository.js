@@ -1,11 +1,11 @@
 const { Expense } = require('../../models');
 
-const create = async (data) => {
-  return Expense.create(data);
+const create = async (data, tenantId) => {
+  return Expense.create({ ...data, tenantId });
 };
 
-const findAll = async (filters = {}) => {
-  const where = {};
+const findAll = async (tenantId, filters = {}) => {
+  const where = { tenantId };
   if (filters.date) {
     where.expenseDate = filters.date;
   }

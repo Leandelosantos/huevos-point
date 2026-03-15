@@ -15,8 +15,6 @@ import {
   TableRow,
   Paper,
   Skeleton,
-  Snackbar,
-  Alert,
   TextField,
   IconButton,
   Tooltip,
@@ -35,6 +33,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import SaleModal from '../components/sales/SaleModal';
 import ExpenseModal from '../components/expenses/ExpenseModal';
+import { showErrorAlert, showSuccessToast } from '../utils/sweetAlert';
 
 const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
   style: 'currency',
@@ -49,7 +48,6 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [saleModalOpen, setSaleModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
 
   const fetchDashboard = useCallback(async () => {
@@ -59,7 +57,7 @@ const DashboardPage = () => {
       setSummary(data.data.summary);
       setMovements(data.data.movements);
     } catch {
-      setSnackbar({ open: true, message: 'Error al cargar el resumen', severity: 'error' });
+      showErrorAlert('Error', 'Error al cargar el resumen');
     } finally {
       setLoading(false);
     }
@@ -71,13 +69,13 @@ const DashboardPage = () => {
 
   const handleSaleSuccess = () => {
     setSaleModalOpen(false);
-    setSnackbar({ open: true, message: 'Venta registrada exitosamente', severity: 'success' });
+    showSuccessToast('Venta registrada exitosamente');
     fetchDashboard();
   };
 
   const handleExpenseSuccess = () => {
     setExpenseModalOpen(false);
-    setSnackbar({ open: true, message: 'Egreso registrado exitosamente', severity: 'success' });
+    showSuccessToast('Egreso registrado exitosamente');
     fetchDashboard();
   };
 
@@ -96,7 +94,7 @@ const DashboardPage = () => {
       worksheet.getRow(1).height = 40;
 
       // Headers
-      const headers = ['Hora', 'Tipo/Concepto', 'Detalle de productos', 'Medio de pago', 'Importe'];
+      const headers = ['Hora', 'Tipo/Concepto', 'Detalle de productos', 'Medio de pago', 'Monto de desc.', 'Importe'];
       const headerRow = worksheet.addRow(headers);
       
       headerRow.eachCell((cell) => {
@@ -116,6 +114,7 @@ const DashboardPage = () => {
         { width: 30 }, // Tipo/Concepto
         { width: 50 }, // Detalle de productos
         { width: 25 }, // Medio de pago
+        { width: 20 }, // Monto de desc.
         { width: 20 }, // Importe
       ];
 
@@ -123,7 +122,7 @@ const DashboardPage = () => {
       movements.forEach((mov) => {
         let detalleText = mov.description;
         if (mov.details && mov.details.length > 0) {
-          detalleText = mov.details.map(d => `${d.productName} x${d.quantity}`).join('\n');
+          detalleText = mov.details.map(d => `${d.productName} x${d.quantity}${d.discount > 0 ? ` (-${d.discount}%)` : ''}`).join('\n');
         }
 
         const row = worksheet.addRow([
@@ -131,12 +130,13 @@ const DashboardPage = () => {
           mov.type === 'VENTA' ? 'Venta' : `Egreso: ${mov.description}`,
           mov.type === 'VENTA' ? detalleText : 'N/A',
           mov.paymentMethod || 'N/A',
+          mov.discountAmount || 0,
           mov.amount
         ]);
 
         row.eachCell((cell, colNumber) => {
           cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-          if (colNumber === 5) {
+          if (colNumber === 5 || colNumber === 6) {
             cell.numFmt = '"$"#,##0.00';
           }
         });
@@ -148,7 +148,7 @@ const DashboardPage = () => {
       saveAs(blob, `movimientos_${selectedDate}.xlsx`);
     } catch (err) {
       console.error(err);
-      setSnackbar({ open: true, message: 'Error exportando a Excel', severity: 'error' });
+      showErrorAlert('Error', 'Error exportando a Excel');
     }
   };
 
@@ -357,6 +357,7 @@ const DashboardPage = () => {
                     <TableCell>Tipo/Concepto</TableCell>
                     <TableCell>Detalle de productos</TableCell>
                     <TableCell>Medio de pago</TableCell>
+                    <TableCell align="right">Monto desc.</TableCell>
                     <TableCell align="right">Importe</TableCell>
                   </TableRow>
                 </TableHead>
@@ -364,7 +365,7 @@ const DashboardPage = () => {
                   {loading ? (
                     Array.from({ length: 3 }).map((_, i) => (
                       <TableRow key={i}>
-                        {Array.from({ length: 5 }).map((_, j) => (
+                        {Array.from({ length: 6 }).map((_, j) => (
                           <TableCell key={j}>
                             <Skeleton />
                           </TableCell>
@@ -373,7 +374,7 @@ const DashboardPage = () => {
                     ))
                   ) : movements.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                         <Typography variant="body2" color="text.secondary">
                           No hay movimientos registrados hoy
                         </Typography>
@@ -423,8 +424,15 @@ const DashboardPage = () => {
                           {mov.type === 'VENTA' ? (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                               {mov.details?.map((d, index) => (
-                                <Typography key={index} variant="caption" sx={{ color: 'text.secondary', display: 'flex', justifyContent: 'space-between', width: 220 }}>
-                                  <span>{d.productName}</span>
+                                <Typography key={index} variant="caption" sx={{ color: 'text.secondary', display: 'flex', justifyContent: 'space-between', width: '100%', minWidth: 220 }}>
+                                  <span>
+                                    {d.productName} 
+                                    {d.discount > 0 && (
+                                      <span style={{ color: '#2D6A4F', fontWeight: 700, marginLeft: 6 }}>
+                                        -{d.discount}%
+                                      </span>
+                                    )}
+                                  </span>
                                   <span style={{ fontWeight: 600 }}>x{d.quantity}</span>
                                 </Typography>
                               ))}
@@ -436,6 +444,11 @@ const DashboardPage = () => {
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
                             {mov.paymentMethod || 'N/A'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: mov.discountAmount > 0 ? '#C62828' : 'text.disabled' }}>
+                            {mov.discountAmount > 0 ? `-${CURRENCY_FORMAT.format(mov.discountAmount)}` : '—'}
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
@@ -470,22 +483,6 @@ const DashboardPage = () => {
         onClose={() => setExpenseModalOpen(false)}
         onSuccess={handleExpenseSuccess}
       />
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

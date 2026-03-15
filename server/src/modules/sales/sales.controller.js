@@ -9,9 +9,10 @@ const register = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'El método de pago es requerido' });
     }
 
-    const result = await salesService.registerSale(req.user.id, items, paymentMethod);
+    const result = await salesService.registerSale(req.user.id, items, paymentMethod, req.tenantId);
 
     await createAuditLog({
+      tenantId: req.tenantId || null,
       userId: req.user.id,
       username: req.user.username,
       actionType: 'VENTA',
@@ -34,7 +35,7 @@ const register = async (req, res, next) => {
 
 const getAll = async (req, res, next) => {
   try {
-    const sales = await salesService.getAllSales(req.query);
+    const sales = await salesService.getAllSales(req.tenantId, req.query);
     res.json({ success: true, data: sales });
   } catch (error) {
     next(error);

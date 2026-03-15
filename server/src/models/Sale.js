@@ -13,6 +13,12 @@ const Sale = sequelize.define('Sale', {
     field: 'user_id',
     references: { model: 'users', key: 'id' },
   },
+  tenantId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'tenant_id',
+    references: { model: 'tenants', key: 'id' },
+  },
   totalAmount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,

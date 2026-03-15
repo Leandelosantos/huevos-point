@@ -32,6 +32,11 @@ const SaleItem = sequelize.define('SaleItem', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
   },
+  discount: {
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: true,
+    defaultValue: 0,
+  },
 }, {
   tableName: 'sale_items',
   timestamps: false,

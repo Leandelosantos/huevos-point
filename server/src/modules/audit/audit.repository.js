@@ -1,7 +1,7 @@
 const { AuditLog, User } = require('../../models');
 const { Op } = require('sequelize');
 
-const findAll = async (filters = {}) => {
+const findAll = async (tenantId, filters = {}) => {
   const where = {};
 
   if (filters.startDate && filters.endDate) {
@@ -23,8 +23,19 @@ const findAll = async (filters = {}) => {
     where.username = { [Op.iLike]: `%${filters.username}%` };
   }
 
+  if (tenantId) {
+    where.tenantId = tenantId;
+  }
+
   const { count, rows } = await AuditLog.findAndCountAll({
     where,
+    include: [
+      {
+        model: User,
+        as: 'user',
+        attributes: [], // Only for joining
+      },
+    ],
     order: [['createdAt', 'DESC']],
     limit: parseInt(filters.limit, 10) || 50,
     offset: parseInt(filters.offset, 10) || 0,

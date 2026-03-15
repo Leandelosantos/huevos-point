@@ -13,6 +13,12 @@ const AuditLog = sequelize.define('AuditLog', {
     field: 'user_id',
     references: { model: 'users', key: 'id' },
   },
+  tenantId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    field: 'tenant_id',
+    references: { model: 'tenants', key: 'id' },
+  },
   username: {
     type: DataTypes.STRING(50),
     allowNull: true,

@@ -1,15 +1,15 @@
 const { Sale, Expense, SaleItem, Product, User } = require('../../models');
 const { Op, fn, col, literal } = require('sequelize');
 
-const getDailySummary = async (date) => {
+const getDailySummary = async (date, tenantId) => {
   const targetDate = date || new Date().toISOString().split('T')[0];
 
   const salesTotal = await Sale.sum('totalAmount', {
-    where: { saleDate: targetDate },
+    where: { saleDate: targetDate, tenantId },
   }) || 0;
 
   const expensesTotal = await Expense.sum('amount', {
-    where: { expenseDate: targetDate },
+    where: { expenseDate: targetDate, tenantId },
   }) || 0;
 
   const netBalance = parseFloat(salesTotal) - parseFloat(expensesTotal);
@@ -22,11 +22,11 @@ const getDailySummary = async (date) => {
   };
 };
 
-const getDailyMovements = async (date) => {
+const getDailyMovements = async (date, tenantId) => {
   const targetDate = date || new Date().toISOString().split('T')[0];
 
   const sales = await Sale.findAll({
-    where: { saleDate: targetDate },
+    where: { saleDate: targetDate, tenantId },
     include: [
       { model: User, as: 'user', attributes: ['username', 'fullName'] },
       {
@@ -39,7 +39,7 @@ const getDailyMovements = async (date) => {
   });
 
   const expenses = await Expense.findAll({
-    where: { expenseDate: targetDate },
+    where: { expenseDate: targetDate, tenantId },
     include: [
       { model: User, as: 'user', attributes: ['username', 'fullName'] },
     ],
@@ -47,26 +47,39 @@ const getDailyMovements = async (date) => {
   });
 
   const movements = [
-    ...sales.map((sale) => ({
-      id: sale.id,
-      type: 'VENTA',
-      amount: parseFloat(sale.totalAmount),
-      paymentMethod: sale.paymentMethod || 'Efectivo',
-      status: sale.status || 'COMPLETED',
-      description: sale.items.map((item) =>
-        `${item.product?.name || 'Producto'} x${item.quantity}`
-      ).join(' + '),
-      details: sale.items.map((item) => ({
-        productName: item.product?.name || 'Producto',
-        quantity: item.quantity,
-      })),
-      user: sale.user?.fullName || sale.user?.username,
-      createdAt: sale.createdAt,
-    })),
+    ...sales.map((sale) => {
+      const totalDiscount = sale.items.reduce((acc, item) => {
+        const itemDiscount = parseFloat(item.discount || 0);
+        if (itemDiscount > 0) {
+          return acc + (parseFloat(item.quantity) * parseFloat(item.unitPrice) * (itemDiscount / 100));
+        }
+        return acc;
+      }, 0);
+
+      return {
+        id: sale.id,
+        type: 'VENTA',
+        amount: parseFloat(sale.totalAmount),
+        discountAmount: totalDiscount,
+        paymentMethod: sale.paymentMethod || 'Efectivo',
+        status: sale.status || 'COMPLETED',
+        description: sale.items.map((item) =>
+          `${item.product?.name || 'Producto'} x${item.quantity}${item.discount > 0 ? ` (-${item.discount}%)` : ''}`
+        ).join(' + '),
+        details: sale.items.map((item) => ({
+          productName: item.product?.name || 'Producto',
+          quantity: item.quantity,
+          discount: item.discount,
+        })),
+        user: sale.user?.fullName || sale.user?.username,
+        createdAt: sale.createdAt,
+      };
+    }),
     ...expenses.map((expense) => ({
       id: expense.id,
       type: 'EGRESO',
       amount: parseFloat(expense.amount),
+      discountAmount: 0,
       paymentMethod: 'Caja',
       status: 'COMPLETED',
       description: expense.concept,

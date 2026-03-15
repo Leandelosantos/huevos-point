@@ -14,8 +14,6 @@ import {
   IconButton,
   Tooltip,
   Skeleton,
-  Snackbar,
-  Alert,
   Chip,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
@@ -25,7 +23,7 @@ import InventoryRoundedIcon from '@mui/icons-material/InventoryRounded';
 import api from '../services/api';
 import ProductModal from '../components/stock/ProductModal';
 import ImportStockDialog from '../components/stock/ImportStockDialog';
-import ConfirmDialog from '../components/common/ConfirmDialog';
+import { showErrorAlert, showSuccessToast, showConfirmation } from '../utils/sweetAlert';
 
 const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
   style: 'currency',
@@ -39,8 +37,6 @@ const StockPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, product: null });
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -48,7 +44,7 @@ const StockPage = () => {
       const { data } = await api.get('/products');
       setProducts(data.data);
     } catch {
-      setSnackbar({ open: true, message: 'Error al cargar productos', severity: 'error' });
+      showErrorAlert('Error', 'Error al cargar productos');
     } finally {
       setLoading(false);
     }
@@ -68,35 +64,27 @@ const StockPage = () => {
     setModalOpen(true);
   };
 
-  const handleDeleteClick = (product) => {
-    setDeleteConfirm({ open: true, product });
-  };
+  const handleDeleteClick = async (product) => {
+    const isConfirmed = await showConfirmation(
+      'Eliminar Producto',
+      `¿Estás seguro de eliminar "${product.name}"? El producto será desactivado.`
+    );
 
-  const handleDeleteConfirm = async () => {
-    const product = deleteConfirm.product;
-    setDeleteConfirm({ open: false, product: null });
-
-    try {
-      await api.delete(`/products/${product.id}`);
-      setSnackbar({ open: true, message: `"${product.name}" eliminado exitosamente`, severity: 'success' });
-      fetchProducts();
-    } catch (err) {
-      setSnackbar({
-        open: true,
-        message: err.response?.data?.message || 'Error al eliminar el producto',
-        severity: 'error',
-      });
+    if (isConfirmed) {
+      try {
+        await api.delete(`/products/${product.id}`);
+        showSuccessToast(`"${product.name}" eliminado exitosamente`);
+        fetchProducts();
+      } catch (err) {
+        showErrorAlert('Error', err.response?.data?.message || 'Error al eliminar el producto');
+      }
     }
   };
 
   const handleModalSuccess = () => {
     setModalOpen(false);
+    showSuccessToast(editingProduct ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente');
     setEditingProduct(null);
-    setSnackbar({
-      open: true,
-      message: editingProduct ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente',
-      severity: 'success',
-    });
     fetchProducts();
   };
 
@@ -121,9 +109,10 @@ const StockPage = () => {
             Stock
           </Typography>
           <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-            Gestión de inventario de productos
+            Inventario de productos
           </Typography>
         </Box>
+        {/* Botones ocultos temporalmente
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
           <Button
             id="btn-import-stock"
@@ -143,6 +132,7 @@ const StockPage = () => {
             Agregar Producto
           </Button>
         </Box>
+        */}
       </Box>
 
       {/* Products Table */}
@@ -212,7 +202,7 @@ const StockPage = () => {
                             <EditRoundedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Eliminar">
+                        {/* <Tooltip title="Eliminar">
                           <IconButton
                             size="small"
                             onClick={() => handleDeleteClick(product)}
@@ -220,7 +210,7 @@ const StockPage = () => {
                           >
                             <DeleteRoundedIcon fontSize="small" />
                           </IconButton>
-                        </Tooltip>
+                        </Tooltip> */}
                       </TableCell>
                     </TableRow>
                   ))
@@ -247,33 +237,6 @@ const StockPage = () => {
         onClose={() => setImportModalOpen(false)}
         onSuccess={handleImportSuccess}
       />
-
-      {/* Delete Confirmation */}
-      <ConfirmDialog
-        open={deleteConfirm.open}
-        title="Eliminar Producto"
-        message={`¿Estás seguro de eliminar "${deleteConfirm.product?.name}"? El producto será desactivado.`}
-        confirmText="Eliminar"
-        severity="error"
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteConfirm({ open: false, product: null })}
-      />
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

@@ -3,47 +3,47 @@ const { SaleItem } = require('../../models');
 const sequelize = require('../../config/database');
 const AppError = require('../../utils/AppError');
 
-const getAllProducts = async () => {
-  return productsRepository.findAllActive();
+const getAllProducts = async (tenantId) => {
+  return productsRepository.findAllActive(tenantId);
 };
 
-const getProductById = async (id) => {
-  const product = await productsRepository.findById(id);
+const getProductById = async (id, tenantId) => {
+  const product = await productsRepository.findById(id, tenantId);
   if (!product || !product.isActive) {
     throw new AppError('Producto no encontrado', 404);
   }
   return product;
 };
 
-const createProduct = async (data) => {
-  return productsRepository.create(data);
+const createProduct = async (data, tenantId) => {
+  return productsRepository.create(data, tenantId);
 };
 
-const updateProduct = async (id, data) => {
-  const product = await productsRepository.update(id, data);
+const updateProduct = async (id, data, tenantId) => {
+  const product = await productsRepository.update(id, data, tenantId);
   if (!product) {
     throw new AppError('Producto no encontrado', 404);
   }
   return product;
 };
 
-const deleteProduct = async (id) => {
-  const product = await productsRepository.findById(id);
+const deleteProduct = async (id, tenantId) => {
+  const product = await productsRepository.findById(id, tenantId);
   if (!product) {
     throw new AppError('Producto no encontrado', 404);
   }
 
   // Check referential integrity: cannot delete if product has sale items
-  const hasSales = await SaleItem.count({ where: { productId: id } });
+  const hasSales = await SaleItem.count({ where: { productId: id } }); // SaleItem needs scope too conceptually, but product deletion block is safe enough
   if (hasSales > 0) {
     // Soft delete instead
-    return productsRepository.softDelete(id);
+    return productsRepository.softDelete(id, tenantId);
   }
 
-  return productsRepository.softDelete(id);
+  return productsRepository.softDelete(id, tenantId);
 };
 
-const processBulkStock = async (productsData) => {
+const processBulkStock = async (productsData, tenantId) => {
   if (!Array.isArray(productsData) || productsData.length === 0) {
     throw new AppError('Los datos enviados para la carga masiva son inválidos o están vacíos', 400);
   }
@@ -57,10 +57,10 @@ const processBulkStock = async (productsData) => {
 
   try {
     for (const item of productsData) {
-      const { name, stockQuantity, unitPrice } = item;
+      const { name, stockQuantity = 0, unitPrice = 0 } = item;
       
-      if (!name || stockQuantity === undefined || unitPrice === undefined) {
-        throw new AppError(`Datos inválidos en el producto: ${name || 'Desconocido'}`, 400);
+      if (!name) {
+        throw new AppError(`El nombre del producto es obligatorio`, 400);
       }
 
       // Convert values to avoid precision/type issues
@@ -75,21 +75,25 @@ const processBulkStock = async (productsData) => {
         throw new AppError(`La cantidad del producto "${name}" debe ser un número entero.`, 400);
       }
 
-      const existingProduct = await productsRepository.findByName(name, { transaction: t });
+      const existingProduct = await productsRepository.findByName(name, tenantId, { transaction: t });
 
       if (existingProduct) {
         // Product exists
-        // If it was inactive (soft deleted), we assume the uploaded stock is the absolute new stock.
-        // If active, we accumulate the uploaded stock to the current stock.
+        // If it was inactive (soft deleted), we activate it.
+        // We only accumulate stock / change price if this is an explicit inventory import (stock/price passed).
+        // If this is just a catalog import (stock=0, price=0), leave existing stock and price untouched.
+        const addStock = parsedStock > 0;
+        const setPrice = parsedPrice > 0;
+
         const newStock = existingProduct.isActive 
-          ? parseFloat(existingProduct.stockQuantity) + parsedStock 
-          : parsedStock;
+          ? (addStock ? parseFloat(existingProduct.stockQuantity) + parsedStock : existingProduct.stockQuantity)
+          : (addStock ? parsedStock : existingProduct.stockQuantity);
 
         await productsRepository.update(existingProduct.id, {
           stockQuantity: newStock,
-          unitPrice: parsedPrice,
+          unitPrice: setPrice ? parsedPrice : existingProduct.unitPrice,
           isActive: true // ensure it's active in case it was soft-deleted
-        }, { transaction: t });
+        }, tenantId, { transaction: t });
         result.updated += 1;
       } else {
         // Product doesn't exist: Create it
@@ -98,7 +102,7 @@ const processBulkStock = async (productsData) => {
           stockQuantity: parsedStock,
           unitPrice: parsedPrice,
           isActive: true
-        }, { transaction: t });
+        }, tenantId, { transaction: t });
         result.created += 1;
       }
     }

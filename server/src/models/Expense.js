@@ -13,6 +13,12 @@ const Expense = sequelize.define('Expense', {
     field: 'user_id',
     references: { model: 'users', key: 'id' },
   },
+  tenantId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    field: 'tenant_id',
+    references: { model: 'tenants', key: 'id' },
+  },
   concept: {
     type: DataTypes.STRING(255),
     allowNull: false,

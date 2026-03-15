@@ -4,9 +4,9 @@ class MetricsController {
   async getMetrics(req, res, next) {
     try {
       const [currentMonthTop, previousMonthTop, lowStockProducts] = await Promise.all([
-        metricsService.getTopProductsCurrentMonth(),
-        metricsService.getTopProductsPreviousMonth(),
-        metricsService.getLowStockProducts(),
+        metricsService.getTopProductsCurrentMonth(req.tenantId),
+        metricsService.getTopProductsPreviousMonth(req.tenantId),
+        metricsService.getLowStockProducts(req.tenantId),
       ]);
 
       res.status(200).json({

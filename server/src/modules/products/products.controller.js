@@ -3,7 +3,7 @@ const { createAuditLog } = require('../../utils/auditLogger');
 
 const getAll = async (req, res, next) => {
   try {
-    const products = await productsService.getAllProducts();
+    const products = await productsService.getAllProducts(req.tenantId);
     res.json({ success: true, data: products });
   } catch (error) {
     next(error);
@@ -12,9 +12,10 @@ const getAll = async (req, res, next) => {
 
 const create = async (req, res, next) => {
   try {
-    const product = await productsService.createProduct(req.body);
+    const product = await productsService.createProduct(req.body, req.tenantId);
 
     await createAuditLog({
+      tenantId: req.tenantId || null,
       userId: req.user.id,
       username: req.user.username,
       actionType: 'PRODUCTO_CREADO',
@@ -33,12 +34,13 @@ const create = async (req, res, next) => {
 
 const update = async (req, res, next) => {
   try {
-    const previousProduct = await productsService.getProductById(req.params.id);
+    const previousProduct = await productsService.getProductById(req.params.id, req.tenantId);
     const previousData = previousProduct.toJSON();
 
-    const product = await productsService.updateProduct(req.params.id, req.body);
+    const product = await productsService.updateProduct(req.params.id, req.body, req.tenantId);
 
     await createAuditLog({
+      tenantId: req.tenantId || null,
       userId: req.user.id,
       username: req.user.username,
       actionType: 'PRODUCTO_MODIFICADO',
@@ -58,12 +60,13 @@ const update = async (req, res, next) => {
 
 const remove = async (req, res, next) => {
   try {
-    const product = await productsService.getProductById(req.params.id);
+    const product = await productsService.getProductById(req.params.id, req.tenantId);
     const previousData = product.toJSON();
 
-    await productsService.deleteProduct(req.params.id);
+    await productsService.deleteProduct(req.params.id, req.tenantId);
 
     await createAuditLog({
+      tenantId: req.tenantId || null,
       userId: req.user.id,
       username: req.user.username,
       actionType: 'PRODUCTO_ELIMINADO',
@@ -84,9 +87,10 @@ const uploadBulk = async (req, res, next) => {
   try {
     const productsData = req.body;
 
-    const result = await productsService.processBulkStock(productsData);
+    const result = await productsService.processBulkStock(productsData, req.tenantId);
 
     await createAuditLog({
+      tenantId: req.tenantId || null,
       userId: req.user.id,
       username: req.user.username,
       actionType: 'STOCK_MASIVO_IMPORTADO',

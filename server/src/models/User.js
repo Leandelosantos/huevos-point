@@ -13,7 +13,18 @@ const User = sequelize.define('User', {
   username: {
     type: DataTypes.STRING(50),
     allowNull: false,
-    unique: true,
+    unique: 'user_tenant_username_unique',
+  },
+  tenantId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    field: 'tenant_id',
+    references: { model: 'tenants', key: 'id' },
+  },
+  email: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    unique: 'user_email_unique',
   },
   password: {
     type: DataTypes.STRING(255),
@@ -25,7 +36,7 @@ const User = sequelize.define('User', {
     field: 'full_name',
   },
   role: {
-    type: DataTypes.ENUM('admin', 'employee'),
+    type: DataTypes.ENUM('superadmin', 'admin', 'employee'),
     allowNull: false,
     defaultValue: 'employee',
   },

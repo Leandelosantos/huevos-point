@@ -1,16 +1,16 @@
 const expensesRepository = require('./expenses.repository');
 
-const registerExpense = async (userId, concept, amount) => {
+const registerExpense = async (userId, concept, amount, tenantId) => {
   return expensesRepository.create({
     userId,
     concept,
     amount,
     expenseDate: new Date(),
-  });
+  }, tenantId);
 };
 
-const getAllExpenses = async (filters) => {
-  return expensesRepository.findAll(filters);
+const getAllExpenses = async (tenantId, filters) => {
+  return expensesRepository.findAll(tenantId, filters);
 };
 
 module.exports = { registerExpense, getAllExpenses };

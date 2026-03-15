@@ -10,6 +10,10 @@ const requireRole = (...allowedRoles) => {
       return next(new AppError('No autenticado', 401));
     }
 
+    if (req.user.role === 'superadmin') {
+      return next();
+    }
+
     if (!allowedRoles.includes(req.user.role)) {
       return next(new AppError('No tiene permisos para acceder a este recurso', 403));
     }

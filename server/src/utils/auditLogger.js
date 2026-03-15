@@ -1,4 +1,4 @@
-const AuditLog = require('../models/AuditLog');
+const { AuditLog, User } = require('../models');
 
 /**
  * Creates an audit log entry.
@@ -17,6 +17,7 @@ const AuditLog = require('../models/AuditLog');
 const createAuditLog = async ({
   userId,
   username,
+  tenantId = null,
   actionType,
   entity = null,
   entityId = null,
@@ -26,12 +27,20 @@ const createAuditLog = async ({
   ipAddress = null,
   transaction = null,
 }) => {
+  if (userId) {
+    const user = await User.findByPk(userId, { transaction });
+    if (user && user.role === 'superadmin') {
+      return null;
+    }
+  }
+
   const options = transaction ? { transaction } : {};
 
   return AuditLog.create(
     {
       userId,
       username,
+      tenantId,
       actionType,
       entity,
       entityId,

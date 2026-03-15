@@ -1,7 +1,7 @@
 const { Sale, SaleItem } = require('../../models');
 
-const create = async (saleData, itemsData, transaction) => {
-  const sale = await Sale.create(saleData, { transaction });
+const create = async (saleData, itemsData, tenantId, transaction) => {
+  const sale = await Sale.create({ ...saleData, tenantId }, { transaction });
 
   const itemsWithSaleId = itemsData.map((item) => ({
     ...item,
@@ -13,8 +13,8 @@ const create = async (saleData, itemsData, transaction) => {
   return sale;
 };
 
-const findAll = async (filters = {}) => {
-  const where = {};
+const findAll = async (tenantId, filters = {}) => {
+  const where = { tenantId };
   if (filters.date) {
     where.saleDate = filters.date;
   }

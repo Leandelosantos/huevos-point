@@ -2,19 +2,17 @@ const sequelize = require('../../config/database');
 const salesRepository = require('./sales.repository');
 const { Product } = require('../../models');
 const AppError = require('../../utils/AppError');
-const { sendPointOrder } = require('../mercadopago/mercadopago.controller');
 
-const registerSale = async (userId, items, paymentMethod) => {
+const registerSale = async (userId, items, paymentMethod, tenantId) => {
   const transaction = await sequelize.transaction();
-  const isMercadoPago = paymentMethod === 'Mercado Pago';
 
   try {
     let totalAmount = 0;
     const saleItems = [];
-    const itemsDetails = []; // Para enviar info a MP
 
     for (const item of items) {
-      const product = await Product.findByPk(item.productId, {
+      const product = await Product.findOne({
+        where: { id: item.productId, tenantId },
         transaction,
         lock: transaction.LOCK.UPDATE,
       });
@@ -34,7 +32,13 @@ const registerSale = async (userId, items, paymentMethod) => {
       }
 
       const unitPrice = parseFloat(product.unitPrice);
-      const subtotal = requestedQuantity * unitPrice;
+      const discountPercentage = parseFloat(item.discount || 0);
+      let subtotal = requestedQuantity * unitPrice;
+      
+      if (discountPercentage > 0) {
+        subtotal = subtotal * (1 - discountPercentage / 100);
+      }
+
       totalAmount += subtotal;
 
       saleItems.push({
@@ -42,17 +46,14 @@ const registerSale = async (userId, items, paymentMethod) => {
         quantity: requestedQuantity,
         unitPrice,
         subtotal,
+        discount: discountPercentage,
       });
 
-      itemsDetails.push({ ...item, name: product.name, unitPrice });
-
-      // Deduct stock only if not MP
-      if (!isMercadoPago) {
-        await product.update(
-          { stockQuantity: currentStock - requestedQuantity },
-          { transaction }
-        );
-      }
+      // Deduct stock always
+      await product.update(
+        { stockQuantity: currentStock - requestedQuantity },
+        { transaction }
+      );
     }
 
     const sale = await salesRepository.create(
@@ -61,18 +62,12 @@ const registerSale = async (userId, items, paymentMethod) => {
         totalAmount, 
         paymentMethod, 
         saleDate: new Date(),
-        status: isMercadoPago ? 'PENDING' : 'COMPLETED'
+        status: 'COMPLETED'
       },
       saleItems,
+      tenantId,
       transaction
     );
-
-    let pointStatus = null;
-    
-    if (isMercadoPago) {
-      const pointResponse = await sendPointOrder(sale);
-      pointStatus = pointResponse.status;
-    }
 
     await transaction.commit();
 
@@ -80,8 +75,7 @@ const registerSale = async (userId, items, paymentMethod) => {
       saleId: sale.id, 
       totalAmount, 
       items: saleItems, 
-      status: sale.status, 
-      pointStatus
+      status: sale.status
     };
   } catch (error) {
     await transaction.rollback();
@@ -89,8 +83,8 @@ const registerSale = async (userId, items, paymentMethod) => {
   }
 };
 
-const getAllSales = async (filters) => {
-  return salesRepository.findAll(filters);
+const getAllSales = async (tenantId, filters) => {
+  return salesRepository.findAll(tenantId, filters);
 };
 
 module.exports = { registerSale, getAllSales };

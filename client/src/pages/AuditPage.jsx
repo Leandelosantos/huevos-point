@@ -14,14 +14,13 @@ import {
   MenuItem,
   Chip,
   Skeleton,
-  Snackbar,
-  Alert,
   Grid,
   Pagination,
 } from '@mui/material';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import dayjs from 'dayjs';
 import api from '../services/api';
+import { showErrorAlert } from '../utils/sweetAlert';
 
 const ACTION_TYPES = [
   { value: '', label: 'Todos' },
@@ -57,7 +56,6 @@ const AuditPage = () => {
     actionType: '',
     username: '',
   });
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'error' });
 
   const fetchLogs = useCallback(async () => {
     try {
@@ -76,7 +74,7 @@ const AuditPage = () => {
       setLogs(data.data.logs);
       setTotal(data.data.total);
     } catch {
-      setSnackbar({ open: true, message: 'Error al cargar auditoría', severity: 'error' });
+      showErrorAlert('Error', 'Error al cargar auditoría');
     } finally {
       setLoading(false);
     }
@@ -253,22 +251,6 @@ const AuditPage = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

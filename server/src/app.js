@@ -14,8 +14,10 @@ const productsRoutes = require('./modules/products/products.routes');
 const salesRoutes = require('./modules/sales/sales.routes');
 const expensesRoutes = require('./modules/expenses/expenses.routes');
 const auditRoutes = require('./modules/audit/audit.routes');
-const mercadopagoRoutes = require('./modules/mercadopago/mercadopago.routes');
 const metricsRoutes = require('./modules/metrics/metrics.routes');
+const usersRoutes = require('./modules/users/users.routes');
+const tenantsRoutes = require('./modules/tenants/tenants.routes');
+const purchasesRoutes = require('./modules/purchases/purchases.routes');
 
 const app = express();
 
@@ -50,8 +52,10 @@ app.use('/api/products', productsRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/audit-logs', auditRoutes);
-app.use('/api/mercadopago', mercadopagoRoutes);
 app.use('/api/metrics', metricsRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/tenants', tenantsRoutes);
+app.use('/api/purchases', purchasesRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

@@ -16,11 +16,17 @@ const login = async (username, password) => {
     throw new AppError('Credenciales incorrectas', 401);
   }
 
+  let userTenants = user.tenants || [];
+  if (user.role === 'superadmin') {
+    userTenants = await authRepository.findAllTenants();
+  }
+
   const payload = {
     id: user.id,
     username: user.username,
     fullName: user.fullName,
     role: user.role,
+    tenants: userTenants,
   };
 
   const token = jwt.sign(payload, env.JWT_SECRET, {

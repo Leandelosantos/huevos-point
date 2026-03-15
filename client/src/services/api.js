@@ -11,9 +11,23 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = sessionStorage.getItem('token');
+    const activeTenantStr = sessionStorage.getItem('activeTenant');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    if (activeTenantStr) {
+      try {
+        const activeTenant = JSON.parse(activeTenantStr);
+        if (activeTenant && activeTenant.id) {
+          config.headers['x-tenant-id'] = activeTenant.id;
+        }
+      } catch (e) {
+        console.error('Failed to parse activeTenant from storage', e);
+      }
+    }
+    
     return config;
   },
   (error) => Promise.reject(error)

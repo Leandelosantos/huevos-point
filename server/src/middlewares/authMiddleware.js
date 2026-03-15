@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const env = require('../config/environment');
 const AppError = require('../utils/AppError');
 
-const authMiddleware = (req, _res, next) => {
+const jwtVerify = (req, _res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -20,4 +20,6 @@ const authMiddleware = (req, _res, next) => {
   }
 };
 
-module.exports = authMiddleware;
+const tenantMiddleware = require('./tenantMiddleware');
+
+module.exports = [jwtVerify, tenantMiddleware];

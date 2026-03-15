@@ -3,7 +3,7 @@ const { Product, SaleItem, Sale } = require('../../models');
 const sequelize = require('../../config/database');
 
 class MetricsService {
-  async getTopProductsForMonth(startDate, endDate) {
+  async getTopProductsForMonth(startDate, endDate, tenantId) {
     const query = `
       SELECT 
         p.id AS "productId", 
@@ -14,13 +14,14 @@ class MetricsService {
       INNER JOIN products p ON si.product_id = p.id
       WHERE s.status = 'COMPLETED'
         AND s.sale_date BETWEEN :startDate AND :endDate
+        AND s.tenant_id = :tenantId
       GROUP BY p.id, p.name
       ORDER BY "totalSold" DESC
       LIMIT 10
     `;
 
     const topProducts = await sequelize.query(query, {
-      replacements: { startDate, endDate },
+      replacements: { startDate, endDate, tenantId },
       type: sequelize.QueryTypes.SELECT,
     });
 
@@ -31,28 +32,29 @@ class MetricsService {
     }));
   }
 
-  async getTopProductsCurrentMonth() {
+  async getTopProductsCurrentMonth(tenantId) {
     const now = new Date();
     // month is 0-indexed, so getMonth() is current month. Day 1 is start, Day 0 of next month is end.
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-    return this.getTopProductsForMonth(startOfMonth, endOfMonth);
+    return this.getTopProductsForMonth(startOfMonth, endOfMonth, tenantId);
   }
 
-  async getTopProductsPreviousMonth() {
+  async getTopProductsPreviousMonth(tenantId) {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
     const endOfMonth = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
-    return this.getTopProductsForMonth(startOfMonth, endOfMonth);
+    return this.getTopProductsForMonth(startOfMonth, endOfMonth, tenantId);
   }
 
-  async getLowStockProducts() {
+  async getLowStockProducts(tenantId) {
     const products = await Product.findAll({
       where: {
         stockQuantity: {
           [Op.lt]: 30,
         },
         isActive: true,
+        tenantId,
       },
       attributes: ['id', 'name', 'stockQuantity'],
       order: [['stockQuantity', 'ASC']],

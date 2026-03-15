@@ -97,15 +97,17 @@ const ProductModal = ({ open, onClose, onSuccess, product }) => {
             </Alert>
           )}
 
-          <TextField
-            label="Nombre del producto"
-            fullWidth
-            autoFocus
-            sx={{ mb: 2.5 }}
-            error={Boolean(errors.name)}
-            helperText={errors.name?.message}
-            {...register('name', { required: 'El nombre es obligatorio' })}
-          />
+          {!isEditing && (
+            <TextField
+              label="Nombre del producto"
+              fullWidth
+              autoFocus
+              sx={{ mb: 2.5 }}
+              error={Boolean(errors.name)}
+              helperText={errors.name?.message}
+              {...register('name', { required: 'El nombre es obligatorio' })}
+            />
+          )}
 
           <TextField
             label="Cantidad en stock"
