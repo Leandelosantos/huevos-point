@@ -8,8 +8,8 @@ const AuditLog = require('./AuditLog');
 const Purchase = require('./Purchase');
 
 // Tenant Associations
-Tenant.belongsToMany(User, { through: 'user_tenants', foreignKey: 'tenant_id', otherKey: 'user_id', as: 'users' });
-User.belongsToMany(Tenant, { through: 'user_tenants', foreignKey: 'user_id', otherKey: 'tenant_id', as: 'tenants' });
+Tenant.belongsToMany(User, { through: { model: 'user_tenants', timestamps: false }, foreignKey: 'tenant_id', otherKey: 'user_id', as: 'users' });
+User.belongsToMany(Tenant, { through: { model: 'user_tenants', timestamps: false }, foreignKey: 'user_id', otherKey: 'tenant_id', as: 'tenants' });
 
 Tenant.hasMany(Product, { foreignKey: 'tenantId', as: 'products' });
 Product.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
