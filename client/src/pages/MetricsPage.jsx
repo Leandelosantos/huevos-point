@@ -18,7 +18,7 @@ import { styled } from '@mui/material/styles';
 import api from '../services/api';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import InsertChartRoundedIcon from '@mui/icons-material/InsertChartRounded';
-import { showErrorAlert } from '../utils/sweetAlert';
+import { showErrorToast } from '../utils/sweetAlert';
 
 const curMonthName = new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' });
 const prevDate = new Date();
@@ -213,7 +213,7 @@ const MetricsPage = () => {
       const { data } = await api.get('/metrics');
       setMetrics(data.data);
     } catch {
-      showErrorAlert('Error', 'Error al cargar las métricas');
+      showErrorToast('Error al cargar las métricas');
     } finally {
       setLoading(false);
     }

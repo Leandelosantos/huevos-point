@@ -20,7 +20,7 @@ import {
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import dayjs from 'dayjs';
 import api from '../services/api';
-import { showErrorAlert } from '../utils/sweetAlert';
+import { showErrorToast } from '../utils/sweetAlert';
 
 const ACTION_TYPES = [
   { value: '', label: 'Todos' },
@@ -74,7 +74,7 @@ const AuditPage = () => {
       setLogs(data.data.logs);
       setTotal(data.data.total);
     } catch {
-      showErrorAlert('Error', 'Error al cargar auditoría');
+      showErrorToast('Error al cargar auditoría');
     } finally {
       setLoading(false);
     }

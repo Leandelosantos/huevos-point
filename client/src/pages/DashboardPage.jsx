@@ -33,7 +33,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import SaleModal from '../components/sales/SaleModal';
 import ExpenseModal from '../components/expenses/ExpenseModal';
-import { showErrorAlert, showSuccessToast } from '../utils/sweetAlert';
+import { showErrorAlert, showErrorToast, showSuccessToast } from '../utils/sweetAlert';
 
 const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
   style: 'currency',
@@ -57,7 +57,7 @@ const DashboardPage = () => {
       setSummary(data.data.summary);
       setMovements(data.data.movements);
     } catch {
-      showErrorAlert('Error', 'Error al cargar el resumen');
+      showErrorToast('Error al cargar el resumen del día');
     } finally {
       setLoading(false);
     }

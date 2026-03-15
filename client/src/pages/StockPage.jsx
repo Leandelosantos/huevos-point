@@ -23,7 +23,7 @@ import InventoryRoundedIcon from '@mui/icons-material/InventoryRounded';
 import api from '../services/api';
 import ProductModal from '../components/stock/ProductModal';
 import ImportStockDialog from '../components/stock/ImportStockDialog';
-import { showErrorAlert, showSuccessToast, showConfirmation } from '../utils/sweetAlert';
+import { showErrorAlert, showErrorToast, showSuccessToast, showConfirmation } from '../utils/sweetAlert';
 
 const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
   style: 'currency',
@@ -44,7 +44,7 @@ const StockPage = () => {
       const { data } = await api.get('/products');
       setProducts(data.data);
     } catch {
-      showErrorAlert('Error', 'Error al cargar productos');
+      showErrorToast('Error al cargar productos');
     } finally {
       setLoading(false);
     }

@@ -21,7 +21,7 @@ import ExcelJS from 'exceljs';
 import dayjs from 'dayjs';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { showSuccessToast, showErrorAlert, showWarningAlert } from '../utils/sweetAlert';
+import { showSuccessToast, showErrorAlert, showErrorToast, showWarningAlert } from '../utils/sweetAlert';
 import PurchaseModal from '../components/purchases/PurchaseModal';
 
 const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
@@ -45,7 +45,7 @@ const PurchasesPage = () => {
       const { data } = await api.get('/purchases');
       setPurchases(data.data.purchases || []);
     } catch {
-      showErrorAlert('Error', 'No se pudieron cargar las compras registradas');
+      showErrorToast('No se pudieron cargar las compras registradas');
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ const PurchasesPage = () => {
       setProductsCache(data.data || []);
       return data.data || [];
     } catch {
-      showErrorAlert('Error', 'No se pudo cargar el catálogo de productos');
+      showErrorToast('No se pudo cargar el catálogo de productos');
       return [];
     }
   };
