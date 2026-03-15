@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Drawer,
@@ -41,6 +41,20 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => 
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
+
+  // Tenants disponibles para el superadmin (cargados desde la API)
+  const [allTenants, setAllTenants] = useState([]);
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      api.get('/tenants')
+        .then(({ data }) => setAllTenants(data.data || []))
+        .catch(() => {});
+    }
+  }, [isSuperAdmin]);
+
+  // La lista de tenants que se muestra en el menú de sucursales
+  const tenantList = isSuperAdmin ? allTenants : (user?.tenants || []);
 
   // Anchor para el menu de cambio de sucursal
   const [anchorEl, setAnchorEl] = useState(null);
@@ -235,7 +249,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => 
         </Box>
 
         {/* M:N Menu Cambio de Sucursal */}
-        {user?.tenants?.length > 1 && (
+        {(isSuperAdmin || (user?.tenants?.length ?? 0) > 1) && (
           <Box sx={{ p: 1, pt: 0 }}>
             {(!isMobile ? desktopOpen : true) && (
               <Button
@@ -277,7 +291,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => 
               transformOrigin={{ horizontal: 'center', vertical: 'bottom' }}
               anchorOrigin={{ horizontal: 'center', vertical: 'top' }}
             >
-              {user?.tenants?.map((t) => (
+              {tenantList.map((t) => (
                 <MenuItem 
                   key={t.id} 
                   onClick={() => handleSwitchTenant(t)}
