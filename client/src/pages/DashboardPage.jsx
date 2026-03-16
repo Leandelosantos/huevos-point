@@ -464,8 +464,20 @@ const DashboardPage = () => {
                                     <span style={{ fontWeight: 600, marginLeft: 8 }}>x{d.quantity}</span>
                                   </Typography>
                                   {d.discount > 0 && d.discountConcept && (
-                                    <Typography variant="caption" sx={{ color: 'text.disabled', fontStyle: 'italic', pl: 0.5 }}>
-                                      Concepto: {d.discountConcept}
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 0.5,
+                                        color: 'warning.dark',
+                                        fontStyle: 'italic',
+                                        fontWeight: 500,
+                                        pl: 0.5,
+                                        mt: 0.25,
+                                      }}
+                                    >
+                                      🏷 {d.discountConcept}
                                     </Typography>
                                   )}
                                 </Box>
