@@ -68,6 +68,7 @@ const getDailyMovements = async (date, tenantId) => {
           productName: item.product?.name || 'Producto',
           quantity: item.quantity,
           discount: item.discount,
+          discountConcept: item.discountConcept || null,
         })),
         user: sale.user?.fullName || sale.user?.username,
         createdAt: sale.createdAt,

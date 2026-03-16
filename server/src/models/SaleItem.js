@@ -37,6 +37,12 @@ const SaleItem = sequelize.define('SaleItem', {
     allowNull: true,
     defaultValue: 0,
   },
+  discountConcept: {
+    type: DataTypes.STRING(120),
+    allowNull: true,
+    defaultValue: null,
+    field: 'discount_concept',
+  },
 }, {
   tableName: 'sale_items',
   timestamps: false,

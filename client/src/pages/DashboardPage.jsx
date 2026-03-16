@@ -453,11 +453,18 @@ const DashboardPage = () => {
                               {mov.details?.map((d, index) => (
                                 <Typography key={index} variant="caption" sx={{ color: 'text.secondary', display: 'flex', justifyContent: 'space-between', width: '100%', minWidth: 220 }}>
                                   <span>
-                                    {d.productName} 
+                                    {d.productName}
                                     {d.discount > 0 && (
-                                      <span style={{ color: '#2D6A4F', fontWeight: 700, marginLeft: 6 }}>
-                                        -{d.discount}%
-                                      </span>
+                                      <>
+                                        <span style={{ color: '#2D6A4F', fontWeight: 700, marginLeft: 6 }}>
+                                          -{d.discount}%
+                                        </span>
+                                        {d.discountConcept && (
+                                          <span style={{ color: '#888', fontStyle: 'italic', marginLeft: 4, fontWeight: 400 }}>
+                                            ({d.discountConcept})
+                                          </span>
+                                        )}
+                                      </>
                                     )}
                                   </span>
                                   <span style={{ fontWeight: 600 }}>x{d.quantity}</span>

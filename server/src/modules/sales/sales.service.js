@@ -47,6 +47,7 @@ const registerSale = async (userId, items, paymentMethod, tenantId, saleDate) =>
         unitPrice,
         subtotal,
         discount: discountPercentage,
+        discountConcept: discountPercentage > 0 ? (item.discountConcept || null) : null,
       });
 
       // Deduct stock always
