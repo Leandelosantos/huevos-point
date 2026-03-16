@@ -12,8 +12,7 @@ class MetricsService {
       FROM sale_items si
       INNER JOIN sales s ON si.sale_id = s.id
       INNER JOIN products p ON si.product_id = p.id
-      WHERE s.status = 'COMPLETED'
-        AND s.sale_date BETWEEN :startDate AND :endDate
+      WHERE s.sale_date BETWEEN :startDate AND :endDate
         AND s.tenant_id = :tenantId
       GROUP BY p.id, p.name
       ORDER BY "totalSold" DESC
