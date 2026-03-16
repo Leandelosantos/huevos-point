@@ -27,6 +27,17 @@ const migrationPromise = (async () => {
       console.log('[migration] orphan columns removed from sales');
     }
 
+    // Add receipt columns to purchases if missing
+    const [receiptCol] = await sequelize.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'purchases' AND column_name = 'receipt_data'
+    `);
+    if (receiptCol.length === 0) {
+      await sequelize.query(`ALTER TABLE purchases ADD COLUMN receipt_data TEXT DEFAULT NULL`);
+      await sequelize.query(`ALTER TABLE purchases ADD COLUMN receipt_mime_type VARCHAR(50) DEFAULT NULL`);
+      console.log('[migration] receipt_data and receipt_mime_type added to purchases');
+    }
+
     // Add created_at / updated_at to user_tenants if missing (Sequelize always inserts them)
     const [utCols] = await sequelize.query(`
       SELECT column_name FROM information_schema.columns

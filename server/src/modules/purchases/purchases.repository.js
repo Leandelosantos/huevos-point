@@ -7,6 +7,15 @@ const create = async (purchaseData, transaction) => {
 const findAll = async (tenantId, { limit, offset }) => {
   const { count, rows } = await Purchase.findAndCountAll({
     where: { tenantId },
+    attributes: {
+      include: [
+        [
+          Purchase.sequelize.literal(`"Purchase"."receipt_data" IS NOT NULL`),
+          'hasReceipt',
+        ],
+      ],
+      exclude: ['receiptData', 'receiptMimeType'],
+    },
     include: [
       {
         model: Product,
@@ -27,7 +36,15 @@ const findAll = async (tenantId, { limit, offset }) => {
   return { total: count, purchases: rows };
 };
 
+const findReceiptById = async (id, tenantId) => {
+  return Purchase.findOne({
+    where: { id, tenantId },
+    attributes: ['id', 'receiptData', 'receiptMimeType'],
+  });
+};
+
 module.exports = {
   create,
   findAll,
+  findReceiptById,
 };

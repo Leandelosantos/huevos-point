@@ -50,6 +50,18 @@ const Purchase = sequelize.define(
       allowNull: false,
       field: 'purchase_date',
     },
+    receiptData: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      defaultValue: null,
+      field: 'receipt_data',
+    },
+    receiptMimeType: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      defaultValue: null,
+      field: 'receipt_mime_type',
+    },
   },
   {
     tableName: 'purchases',

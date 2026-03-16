@@ -14,6 +14,8 @@ const createPurchase = async (purchaseData) => {
     marginAmount,
     provider,
     purchaseDate,
+    receiptData,
+    receiptMimeType,
   } = purchaseData;
 
   const t = await sequelize.transaction();
@@ -36,6 +38,8 @@ const createPurchase = async (purchaseData) => {
         marginAmount,
         provider,
         purchaseDate,
+        receiptData: receiptData || null,
+        receiptMimeType: receiptMimeType || null,
       },
       t
     );
@@ -72,7 +76,17 @@ const getPurchases = async (tenantId, query) => {
   return await purchasesRepository.findAll(tenantId, query);
 };
 
+const getPurchaseReceipt = async (id, tenantId) => {
+  const purchase = await purchasesRepository.findReceiptById(id, tenantId);
+  if (!purchase || !purchase.receiptData) {
+    const AppError = require('../../utils/AppError');
+    throw new AppError('Comprobante no encontrado', 404);
+  }
+  return { receiptData: purchase.receiptData, receiptMimeType: purchase.receiptMimeType };
+};
+
 module.exports = {
   createPurchase,
   getPurchases,
+  getPurchaseReceipt,
 };

@@ -13,10 +13,13 @@ import {
   TableRow,
   Skeleton,
   Chip,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import ShoppingBagRoundedIcon from '@mui/icons-material/ShoppingBagRounded';
 import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import ExcelJS from 'exceljs';
 import dayjs from 'dayjs';
 import api from '../services/api';
@@ -135,6 +138,23 @@ const PurchasesPage = () => {
     }
   };
 
+  const handleViewReceipt = async (purchaseId) => {
+    try {
+      const { data } = await api.get(`/purchases/${purchaseId}/receipt`);
+      const { receiptData, receiptMimeType } = data.data;
+      const byteChars = atob(receiptData);
+      const byteArr = new Uint8Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteArr[i] = byteChars.charCodeAt(i);
+      }
+      const blob = new Blob([byteArr], { type: receiptMimeType });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch {
+      showErrorToast('No se pudo cargar el comprobante');
+    }
+  };
+
   const handlePurchaseSuccess = () => {
     setModalOpen(false);
     showSuccessToast('Compra registrada exitosamente');
@@ -207,20 +227,21 @@ const PurchasesPage = () => {
                   <TableCell align="right">Precio Venta</TableCell>
                   <TableCell align="right">Monto de margen</TableCell>
                   <TableCell align="right">Total Invertido</TableCell>
+                  <TableCell align="center">Comprobante</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 8 }).map((_, j) => (
+                      {Array.from({ length: 9 }).map((_, j) => (
                         <TableCell key={j}><Skeleton /></TableCell>
                       ))}
                     </TableRow>
                   ))
                 ) : purchases.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                       <Typography variant="body2" color="text.secondary">
                         No hay compras registradas
                       </Typography>
@@ -270,6 +291,21 @@ const PurchasesPage = () => {
                         <Typography variant="body2" sx={{ fontWeight: 800, color: '#C62828' }}>
                           -{CURRENCY_FORMAT.format(parseFloat(purchase.cost) * parseInt(purchase.quantity, 10))}
                         </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        {purchase.hasReceipt ? (
+                          <Tooltip title="Ver comprobante">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleViewReceipt(purchase.id)}
+                              sx={{ color: '#2D6A4F' }}
+                            >
+                              <ReceiptLongRoundedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        ) : (
+                          <Typography variant="caption" color="text.disabled">—</Typography>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))

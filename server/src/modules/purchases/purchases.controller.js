@@ -12,6 +12,8 @@ const createPurchase = async (req, res, next) => {
       marginAmount,
       provider,
       purchaseDate,
+      receiptData,
+      receiptMimeType,
     } = req.body;
 
     if (!productId || !quantity || cost === undefined || price === undefined || marginAmount === undefined || !purchaseDate) {
@@ -31,6 +33,8 @@ const createPurchase = async (req, res, next) => {
       marginAmount,
       provider,
       purchaseDate,
+      receiptData: receiptData || null,
+      receiptMimeType: receiptMimeType || null,
     });
 
     await createAuditLog({
@@ -79,7 +83,19 @@ const getPurchases = async (req, res, next) => {
   }
 };
 
+const getReceipt = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const tenantId = req.tenantId;
+    const result = await purchasesService.getPurchaseReceipt(id, tenantId);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createPurchase,
   getPurchases,
+  getReceipt,
 };

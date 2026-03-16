@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -11,7 +11,11 @@ import {
   InputAdornment,
   Typography,
   Box,
+  IconButton,
 } from '@mui/material';
+import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
 import dayjs from 'dayjs';
 import api from '../../services/api';
 import { showErrorAlert } from '../../utils/sweetAlert';
@@ -25,15 +29,24 @@ const INIT_STATE = {
   provider: '',
 };
 
+const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
+
 const PurchaseModal = ({ open, onClose, onSuccess, products }) => {
   const [formData, setFormData] = useState(INIT_STATE);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [margin, setMargin] = useState(0);
+  const [receiptData, setReceiptData] = useState(null);
+  const [receiptMimeType, setReceiptMimeType] = useState(null);
+  const [receiptFileName, setReceiptFileName] = useState('');
+  const receiptInputRef = useRef(null);
 
   useEffect(() => {
     if (open) {
       setFormData(INIT_STATE);
       setMargin(0);
+      setReceiptData(null);
+      setReceiptMimeType(null);
+      setReceiptFileName('');
     }
   }, [open]);
 
@@ -48,6 +61,33 @@ const PurchaseModal = ({ open, onClose, onSuccess, products }) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleReceiptChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = '';
+
+    if (file.size > MAX_FILE_BYTES) {
+      showErrorAlert('Archivo demasiado grande', 'El comprobante no puede superar los 2 MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const [header, base64] = reader.result.split(',');
+      const mime = header.match(/data:(.*);base64/)[1];
+      setReceiptData(base64);
+      setReceiptMimeType(mime);
+      setReceiptFileName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveReceipt = () => {
+    setReceiptData(null);
+    setReceiptMimeType(null);
+    setReceiptFileName('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -60,6 +100,8 @@ const PurchaseModal = ({ open, onClose, onSuccess, products }) => {
         cost: parseFloat(formData.cost),
         price: parseFloat(formData.price),
         marginAmount: margin,
+        receiptData: receiptData || null,
+        receiptMimeType: receiptMimeType || null,
       });
       onSuccess();
     } catch (error) {
@@ -75,7 +117,7 @@ const PurchaseModal = ({ open, onClose, onSuccess, products }) => {
       <DialogTitle sx={{ fontWeight: 800, color: '#2D6A4F' }}>
         Registrar Nueva Compra
       </DialogTitle>
-      
+
       <form onSubmit={handleSubmit}>
         <DialogContent dividers>
           <Grid container spacing={2}>
@@ -191,9 +233,59 @@ const PurchaseModal = ({ open, onClose, onSuccess, products }) => {
                 </Typography>
               </Box>
             </Grid>
+
+            {/* Comprobante upload */}
+            <Grid item xs={12}>
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                style={{ display: 'none' }}
+                ref={receiptInputRef}
+                onChange={handleReceiptChange}
+              />
+              {receiptFileName ? (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    px: 2,
+                    py: 1.5,
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'success.light',
+                    bgcolor: '#E8F5E9',
+                  }}
+                >
+                  <InsertDriveFileRoundedIcon sx={{ color: '#2D6A4F', flexShrink: 0 }} />
+                  <Typography variant="body2" sx={{ flexGrow: 1, fontWeight: 600, color: '#2D6A4F' }} noWrap>
+                    {receiptFileName}
+                  </Typography>
+                  <IconButton size="small" onClick={handleRemoveReceipt} sx={{ color: 'text.secondary' }}>
+                    <CloseRoundedIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ) : (
+                <Button
+                  variant="outlined"
+                  startIcon={<UploadFileRoundedIcon />}
+                  onClick={() => receiptInputRef.current.click()}
+                  fullWidth
+                  sx={{
+                    borderStyle: 'dashed',
+                    borderColor: 'divider',
+                    color: 'text.secondary',
+                    py: 1.5,
+                    '&:hover': { borderColor: '#2D6A4F', color: '#2D6A4F' },
+                  }}
+                >
+                  Adjuntar comprobante (PDF, JPG, PNG — opcional, máx. 2 MB)
+                </Button>
+              )}
+            </Grid>
           </Grid>
         </DialogContent>
-        
+
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={onClose} color="inherit" disabled={isSubmitting}>
             Cancelar

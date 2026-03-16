@@ -17,6 +17,17 @@ const runMigrations = async () => {
     console.log('✅ Migración aplicada: discount_concept en sale_items');
   }
 
+  // Add receipt columns to purchases if missing
+  const [receiptCol] = await sequelize.query(`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'purchases' AND column_name = 'receipt_data'
+  `);
+  if (receiptCol.length === 0) {
+    await sequelize.query(`ALTER TABLE purchases ADD COLUMN receipt_data TEXT DEFAULT NULL`);
+    await sequelize.query(`ALTER TABLE purchases ADD COLUMN receipt_mime_type VARCHAR(50) DEFAULT NULL`);
+    console.log('✅ Migración aplicada: receipt_data y receipt_mime_type en purchases');
+  }
+
   // Remove orphan columns status / mp_preference_id from sales if still present
   const [orphans] = await sequelize.query(`
     SELECT column_name FROM information_schema.columns
