@@ -449,26 +449,26 @@ const DashboardPage = () => {
                         </TableCell>
                         <TableCell>
                           {mov.type === 'VENTA' ? (
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                               {mov.details?.map((d, index) => (
-                                <Typography key={index} variant="caption" sx={{ color: 'text.secondary', display: 'flex', justifyContent: 'space-between', width: '100%', minWidth: 220 }}>
-                                  <span>
-                                    {d.productName}
-                                    {d.discount > 0 && (
-                                      <>
+                                <Box key={index}>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', justifyContent: 'space-between', width: '100%', minWidth: 220 }}>
+                                    <span>
+                                      {d.productName}
+                                      {d.discount > 0 && (
                                         <span style={{ color: '#2D6A4F', fontWeight: 700, marginLeft: 6 }}>
                                           -{d.discount}%
                                         </span>
-                                        {d.discountConcept && (
-                                          <span style={{ color: '#888', fontStyle: 'italic', marginLeft: 4, fontWeight: 400 }}>
-                                            ({d.discountConcept})
-                                          </span>
-                                        )}
-                                      </>
-                                    )}
-                                  </span>
-                                  <span style={{ fontWeight: 600 }}>x{d.quantity}</span>
-                                </Typography>
+                                      )}
+                                    </span>
+                                    <span style={{ fontWeight: 600, marginLeft: 8 }}>x{d.quantity}</span>
+                                  </Typography>
+                                  {d.discount > 0 && d.discountConcept && (
+                                    <Typography variant="caption" sx={{ color: 'text.disabled', fontStyle: 'italic', pl: 0.5 }}>
+                                      Concepto: {d.discountConcept}
+                                    </Typography>
+                                  )}
+                                </Box>
                               ))}
                             </Box>
                           ) : (
