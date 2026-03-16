@@ -1,5 +1,5 @@
 ---
-trigger: always_on
+trigger: never
 ---
 
 1. Introducción y Beneficios de la Integración

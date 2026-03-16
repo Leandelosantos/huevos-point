@@ -1,5 +1,4 @@
 const { Sale, Expense, SaleItem, Product, User } = require('../../models');
-const { Op, fn, col, literal } = require('sequelize');
 
 const getDailySummary = async (date, tenantId) => {
   const targetDate = date || new Date().toISOString().split('T')[0];
@@ -62,7 +61,6 @@ const getDailyMovements = async (date, tenantId) => {
         amount: parseFloat(sale.totalAmount),
         discountAmount: totalDiscount,
         paymentMethod: sale.paymentMethod || 'Efectivo',
-        status: sale.status || 'COMPLETED',
         description: sale.items.map((item) =>
           `${item.product?.name || 'Producto'} x${item.quantity}${item.discount > 0 ? ` (-${item.discount}%)` : ''}`
         ).join(' + '),
@@ -81,7 +79,6 @@ const getDailyMovements = async (date, tenantId) => {
       amount: parseFloat(expense.amount),
       discountAmount: 0,
       paymentMethod: 'Caja',
-      status: 'COMPLETED',
       description: expense.concept,
       details: [],
       user: expense.user?.fullName || expense.user?.username,

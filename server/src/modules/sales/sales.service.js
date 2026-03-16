@@ -57,12 +57,11 @@ const registerSale = async (userId, items, paymentMethod, tenantId, saleDate) =>
     }
 
     const sale = await salesRepository.create(
-      { 
-        userId, 
-        totalAmount, 
-        paymentMethod, 
+      {
+        userId,
+        totalAmount,
+        paymentMethod,
         saleDate: saleDate || new Date(),
-        status: 'COMPLETED'
       },
       saleItems,
       tenantId,
@@ -71,11 +70,10 @@ const registerSale = async (userId, items, paymentMethod, tenantId, saleDate) =>
 
     await transaction.commit();
 
-    return { 
-      saleId: sale.id, 
-      totalAmount, 
-      items: saleItems, 
-      status: sale.status
+    return {
+      saleId: sale.id,
+      totalAmount,
+      items: saleItems,
     };
   } catch (error) {
     await transaction.rollback();

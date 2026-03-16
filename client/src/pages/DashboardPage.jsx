@@ -188,7 +188,7 @@ const DashboardPage = () => {
       <Box sx={{ mb: 4, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, overflow: 'hidden' }}>
         <Box>
           <Typography variant="h2" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.5 }}>
-            Dashboard {activeTenant ? `[${activeTenant.name}]` : ''}
+            Dashboard {activeTenant ? `${activeTenant.name}` : ''}
           </Typography>
           <Typography variant="body1" sx={{ color: 'text.secondary' }}>
             Control de caja general
@@ -289,6 +289,46 @@ const DashboardPage = () => {
           </Grid>
         ))}
       </Grid>
+
+      {/* Payment Method Breakdown */}
+      {!loading && movements.some((m) => m.type === 'VENTA') && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, mb: 1.5 }}>
+            Ventas por medio de pago
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+            {Object.entries(
+              movements
+                .filter((m) => m.type === 'VENTA')
+                .reduce((acc, m) => {
+                  acc[m.paymentMethod] = (acc[m.paymentMethod] || 0) + m.amount;
+                  return acc;
+                }, {})
+            ).map(([method, total]) => (
+              <Box
+                key={method}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 2,
+                  py: 1,
+                  borderRadius: 2,
+                  background: 'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)',
+                  border: '1px solid rgba(45, 106, 79, 0.15)',
+                }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 600, color: '#2D6A4F' }}>
+                  {method}
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 800, color: '#2D6A4F' }}>
+                  {CURRENCY_FORMAT.format(total)}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      )}
 
       {/* Action Buttons */}
       <Grid container spacing={2} sx={{ mb: 4, width: '100%', m: 0 }}>
@@ -398,21 +438,8 @@ const DashboardPage = () => {
                                 fontSize: '0.65rem',
                                 backgroundColor: mov.type === 'VENTA' ? 'rgba(45, 106, 79, 0.1)' : 'rgba(198, 40, 40, 0.1)',
                                 color: mov.type === 'VENTA' ? '#2D6A4F' : '#C62828',
-                                opacity: mov.status === 'PENDING' ? 0.6 : 1,
                               }}
                             />
-                            {mov.status === 'PENDING' && (
-                              <Chip
-                                label="PENDIENTE PAGO"
-                                size="small"
-                                sx={{
-                                  fontWeight: 700,
-                                  fontSize: '0.6rem',
-                                  backgroundColor: 'rgba(230, 81, 0, 0.1)',
-                                  color: '#E65100',
-                                }}
-                              />
-                            )}
                             {mov.type === 'EGRESO' && (
                               <Typography variant="body2" sx={{ maxWidth: 150 }} noWrap>
                                 {mov.description}

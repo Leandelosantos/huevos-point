@@ -5,6 +5,11 @@
       "source": "shadcn/ui",
       "sourceType": "github",
       "computedHash": "91c02eb706f046fb9d6a061efbb96496e4be751b5b14c283cf82baaa50f3a985"
+    },
+    "senior-architect": {
+      "source": "sickn33/antigravity-awesome-skills/skills/senior-architect",
+      "sourceType": "github",
+      "computedHash": "installed-2026-03-16"
     }
   }
 }
