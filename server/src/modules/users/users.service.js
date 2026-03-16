@@ -14,6 +14,9 @@ const getUserById = async (id) => {
 };
 
 const createUser = async (userData) => {
+  // Normalize empty email to null to avoid unique-constraint conflicts
+  if (!userData.email) userData.email = null;
+
   const existingUsername = await usersRepository.findByUsername(userData.username);
   if (existingUsername) {
     throw new AppError('El nombre de usuario ya está en uso', 400);
