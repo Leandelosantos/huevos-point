@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Product, SaleItem, Sale } = require('../../models');
+const { Product, SaleItem, Sale, Expense } = require('../../models');
 const sequelize = require('../../config/database');
 
 class MetricsService {
@@ -44,6 +44,21 @@ class MetricsService {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];
     const endOfMonth = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0];
     return this.getTopProductsForMonth(startOfMonth, endOfMonth, tenantId);
+  }
+
+  async getMonthlyBalance(tenantId, year, month) {
+    const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+    const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+
+    const [salesTotal, expensesTotal] = await Promise.all([
+      Sale.sum('totalAmount', { where: { saleDate: { [Op.between]: [startDate, endDate] }, tenantId } }),
+      Expense.sum('amount', { where: { expenseDate: { [Op.between]: [startDate, endDate] }, tenantId } }),
+    ]);
+
+    const totalIncome = parseFloat(salesTotal || 0);
+    const totalExpenses = parseFloat(expensesTotal || 0);
+
+    return { totalIncome, totalExpenses, netBalance: totalIncome - totalExpenses, year, month };
   }
 
   async getLowStockProducts(tenantId) {

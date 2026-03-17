@@ -15,9 +15,17 @@ import {
 import { PieChart, pieArcLabelClasses } from '@mui/x-charts/PieChart';
 import { useDrawingArea } from '@mui/x-charts/hooks';
 import { styled } from '@mui/material/styles';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import 'dayjs/locale/es';
 import api from '../services/api';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import InsertChartRoundedIcon from '@mui/icons-material/InsertChartRounded';
+import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
+import TrendingDownRoundedIcon from '@mui/icons-material/TrendingDownRounded';
+import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceWalletRounded';
 import { showErrorToast } from '../utils/sweetAlert';
 
 const curMonthName = new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' });
@@ -199,6 +207,116 @@ const PieLegend = ({ products }) => {
   );
 };
 
+const fmt = (n) =>
+  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 }).format(n);
+
+const MonthlyBalanceCard = () => {
+  const [selectedMonth, setSelectedMonth] = useState(dayjs());
+  const [balance, setBalance] = useState(null);
+  const [loadingBalance, setLoadingBalance] = useState(true);
+
+  const fetchBalance = useCallback(async (date) => {
+    try {
+      setLoadingBalance(true);
+      const { data } = await api.get('/metrics/monthly-balance', {
+        params: { year: date.year(), month: date.month() + 1 },
+      });
+      setBalance(data.data);
+    } catch {
+      showErrorToast('Error al cargar el saldo mensual');
+    } finally {
+      setLoadingBalance(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBalance(selectedMonth);
+  }, [fetchBalance, selectedMonth]);
+
+  const isCurrentMonth = selectedMonth.isSame(dayjs(), 'month');
+  const monthLabel = selectedMonth.locale('es').format('MMMM YYYY');
+
+  return (
+    <Card sx={{ borderRadius: 3, boxShadow: '0px 4px 20px rgba(0,0,0,0.05)', mb: 0 }}>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AccountBalanceWalletRoundedIcon sx={{ color: 'primary.main' }} />
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Saldo neto del mes{isCurrentMonth ? ' (en curso)' : ''}
+            </Typography>
+          </Box>
+          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+            <DatePicker
+              views={['year', 'month']}
+              value={selectedMonth}
+              onChange={(v) => v && setSelectedMonth(v)}
+              maxDate={dayjs()}
+              label="Mes"
+              slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+            />
+          </LocalizationProvider>
+        </Box>
+
+        {loadingBalance ? (
+          <Grid container spacing={2}>
+            {[1, 2, 3].map((i) => <Grid item xs={12} sm={4} key={i}><Skeleton variant="rectangular" height={80} sx={{ borderRadius: 2 }} /></Grid>)}
+          </Grid>
+        ) : balance ? (
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ p: 2, borderRadius: 2, backgroundColor: 'rgba(46, 125, 50, 0.06)', border: '1px solid rgba(46, 125, 50, 0.2)' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                  <TrendingUpRoundedIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Ingresos
+                  </Typography>
+                </Box>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: 'success.dark' }}>
+                  {fmt(balance.totalIncome)}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ p: 2, borderRadius: 2, backgroundColor: 'rgba(198, 40, 40, 0.06)', border: '1px solid rgba(198, 40, 40, 0.2)' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                  <TrendingDownRoundedIcon sx={{ fontSize: 16, color: 'error.main' }} />
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Egresos
+                  </Typography>
+                </Box>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: 'error.dark' }}>
+                  {fmt(balance.totalExpenses)}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{
+                p: 2, borderRadius: 2,
+                backgroundColor: balance.netBalance >= 0 ? 'rgba(25, 118, 210, 0.06)' : 'rgba(198, 40, 40, 0.06)',
+                border: `1px solid ${balance.netBalance >= 0 ? 'rgba(25, 118, 210, 0.2)' : 'rgba(198, 40, 40, 0.2)'}`,
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                  <AccountBalanceWalletRoundedIcon sx={{ fontSize: 16, color: balance.netBalance >= 0 ? 'primary.main' : 'error.main' }} />
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Saldo neto
+                  </Typography>
+                </Box>
+                <Typography variant="h5" sx={{ fontWeight: 800, color: balance.netBalance >= 0 ? 'primary.dark' : 'error.dark' }}>
+                  {fmt(balance.netBalance)}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
+                  {monthLabel}
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+};
+
 const MetricsPage = () => {
   const [metrics, setMetrics] = useState({
     currentMonthTop: [],
@@ -238,6 +356,11 @@ const MetricsPage = () => {
       </Box>
 
       <Grid container spacing={3}>
+        {/* Monthly Balance Card */}
+        <Grid item xs={12}>
+          <MonthlyBalanceCard />
+        </Grid>
+
         {/* Current Month Pie Chart */}
         <Grid item xs={12} md={6}>
           <Card sx={{ height: '100%', borderRadius: 3, boxShadow: '0px 4px 20px rgba(0,0,0,0.05)' }}>

@@ -12,4 +12,10 @@ router.get(
   metricsController.getMetrics.bind(metricsController)
 );
 
+router.get(
+  '/monthly-balance',
+  requireRole('admin'),
+  metricsController.getMonthlyBalance.bind(metricsController)
+);
+
 module.exports = router;
