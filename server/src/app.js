@@ -18,6 +18,7 @@ const metricsRoutes = require('./modules/metrics/metrics.routes');
 const usersRoutes = require('./modules/users/users.routes');
 const tenantsRoutes = require('./modules/tenants/tenants.routes');
 const purchasesRoutes = require('./modules/purchases/purchases.routes');
+const cronRoutes = require('./modules/cron/cron.routes');
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use('/api/metrics', metricsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/tenants', tenantsRoutes);
 app.use('/api/purchases', purchasesRoutes);
+app.use('/api/cron', cronRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {
