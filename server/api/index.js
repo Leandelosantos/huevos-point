@@ -52,6 +52,16 @@ const migrationPromise = (async () => {
       await sequelize.query(`ALTER TABLE user_tenants ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()`);
       console.log('[migration] updated_at added to user_tenants');
     }
+
+    // Performance indexes — composite indexes for multi-tenant filtered queries
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS sales_tenant_date_idx ON sales (tenant_id, sale_date)`);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS expenses_tenant_date_idx ON expenses (tenant_id, expense_date)`);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS sale_items_sale_id_idx ON sale_items (sale_id)`);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS sale_items_product_id_idx ON sale_items (product_id)`);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS audit_logs_tenant_created_idx ON audit_logs (tenant_id, created_at DESC)`);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS products_tenant_active_idx ON products (tenant_id, is_active)`);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS purchases_tenant_date_idx ON purchases (tenant_id, purchase_date)`);
+    console.log('[migration] performance indexes ensured');
   } catch (e) {
     console.error('[migration error]', e.message);
   }
