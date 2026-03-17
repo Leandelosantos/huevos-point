@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -37,7 +37,7 @@ const PurchasesPage = () => {
   
   const fileInputRef = useRef(null);
 
-  const fetchPurchases = async () => {
+  const fetchPurchases = useCallback(async () => {
     try {
       setLoading(true);
       const { data } = await api.get('/purchases');
@@ -47,9 +47,9 @@ const PurchasesPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       const { data } = await api.get('/products');
       setProductsCache(data.data || []);
@@ -58,12 +58,12 @@ const PurchasesPage = () => {
       showErrorToast('No se pudo cargar el catálogo de productos');
       return [];
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchPurchases();
     fetchProducts();
-  }, []);
+  }, [fetchPurchases, fetchProducts]);
 
   const handleOpenModal = async () => {
     const products = await fetchProducts();

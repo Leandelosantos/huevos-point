@@ -20,12 +20,7 @@ import InventoryRoundedIcon from '@mui/icons-material/InventoryRounded';
 import api from '../services/api';
 import ProductModal from '../components/stock/ProductModal';
 import { showErrorToast, showSuccessToast } from '../utils/sweetAlert';
-
-const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
-  style: 'currency',
-  currency: 'ARS',
-  minimumFractionDigits: 2,
-});
+import { CURRENCY_FORMAT } from '../utils/formatters';
 
 const StockPage = () => {
   const [products, setProducts] = useState([]);
@@ -64,7 +59,7 @@ const StockPage = () => {
   const getStockColor = (quantity) => {
     const qty = parseFloat(quantity);
     if (qty === 0) return 'error';
-    if (qty <= 10) return 'warning';
+    if (qty < 30) return 'warning';
     return 'success';
   };
 

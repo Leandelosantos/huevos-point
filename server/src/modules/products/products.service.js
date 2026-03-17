@@ -1,5 +1,4 @@
 const productsRepository = require('./products.repository');
-const { SaleItem } = require('../../models');
 const sequelize = require('../../config/database');
 const AppError = require('../../utils/AppError');
 
@@ -31,13 +30,6 @@ const deleteProduct = async (id, tenantId) => {
   const product = await productsRepository.findById(id, tenantId);
   if (!product) {
     throw new AppError('Producto no encontrado', 404);
-  }
-
-  // Check referential integrity: cannot delete if product has sale items
-  const hasSales = await SaleItem.count({ where: { productId: id } }); // SaleItem needs scope too conceptually, but product deletion block is safe enough
-  if (hasSales > 0) {
-    // Soft delete instead
-    return productsRepository.softDelete(id, tenantId);
   }
 
   return productsRepository.softDelete(id, tenantId);

@@ -59,10 +59,27 @@ const validateProduct = [
   handleValidationErrors,
 ];
 
+const validatePurchase = [
+  body('productId')
+    .isInt({ min: 1 })
+    .withMessage('ID de producto inválido'),
+  body('quantity')
+    .isFloat({ gt: 0 })
+    .withMessage('La cantidad debe ser mayor a 0'),
+  body('cost')
+    .isFloat({ min: 0 })
+    .withMessage('El costo debe ser un número no negativo'),
+  body('price')
+    .isFloat({ gt: 0 })
+    .withMessage('El precio de venta debe ser mayor a 0'),
+  handleValidationErrors,
+];
+
 module.exports = {
   validateLogin,
   validateSale,
   validateExpense,
   validateProduct,
+  validatePurchase,
   handleValidationErrors,
 };
