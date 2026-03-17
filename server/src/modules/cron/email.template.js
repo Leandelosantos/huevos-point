@@ -244,4 +244,153 @@ const buildSummaryEmail = (tenantName, data) => {
 </html>`;
 };
 
-module.exports = { buildSummaryEmail };
+/**
+ * Build a consolidated HTML email for superadmins covering ALL tenants.
+ * @param {Array<{ tenantName: string, data: object }>} tenantsData
+ * @param {string} date - YYYY-MM-DD
+ */
+const buildConsolidatedEmail = (tenantsData, date) => {
+  const dateFormatted = new Date(date + 'T12:00:00').toLocaleDateString('es-AR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const capitalizeFirst = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  // Global totals across all tenants
+  const globalIncome = tenantsData.reduce((s, t) => s + t.data.totalIncome, 0);
+  const globalExpenses = tenantsData.reduce((s, t) => s + t.data.totalExpenses, 0);
+  const globalNet = globalIncome - globalExpenses;
+
+  const globalCards = `
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+      <tr>
+        <td style="width:33%;padding:6px">
+          <div style="background:#E8F5E9;border-radius:12px;padding:14px;text-align:center">
+            <div style="color:#2D6A4F;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Ingresos totales</div>
+            <div style="color:#1B4332;font-size:18px;font-weight:800">${fmt(globalIncome)}</div>
+          </div>
+        </td>
+        <td style="width:33%;padding:6px">
+          <div style="background:#FFEBEE;border-radius:12px;padding:14px;text-align:center">
+            <div style="color:#C62828;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Egresos totales</div>
+            <div style="color:#B71C1C;font-size:18px;font-weight:800">${fmt(globalExpenses)}</div>
+          </div>
+        </td>
+        <td style="width:33%;padding:6px">
+          <div style="background:${globalNet >= 0 ? '#E8F5E9' : '#FFEBEE'};border-radius:12px;padding:14px;text-align:center">
+            <div style="color:${globalNet >= 0 ? '#2D6A4F' : '#C62828'};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Saldo neto global</div>
+            <div style="color:${globalNet >= 0 ? '#1B4332' : '#B71C1C'};font-size:18px;font-weight:800">${fmt(globalNet)}</div>
+          </div>
+        </td>
+      </tr>
+    </table>`;
+
+  // One section block per tenant
+  const tenantBlocks = tenantsData
+    .map(({ tenantName, data }) => {
+      const netColor = data.netBalance >= 0 ? '#2D6A4F' : '#C62828';
+      const netBg = data.netBalance >= 0 ? '#E8F5E9' : '#FFEBEE';
+
+      return `
+        <!-- Tenant separator -->
+        <div style="background:linear-gradient(135deg,#1B4332 0%,#2D6A4F 100%);border-radius:10px;padding:14px 20px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+          <span style="color:#ffffff;font-size:16px;font-weight:800">🏪 ${tenantName}</span>
+          <span style="color:#B7E4C7;font-size:12px">${data.movements.length} movimiento${data.movements.length !== 1 ? 's' : ''}</span>
+        </div>
+
+        <!-- Tenant summary row -->
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+          <tr>
+            <td style="width:33%;padding:4px">
+              <div style="background:#E8F5E9;border-radius:8px;padding:10px;text-align:center">
+                <div style="color:#2D6A4F;font-size:10px;font-weight:600;margin-bottom:2px">Ingresos</div>
+                <div style="color:#1B4332;font-size:15px;font-weight:800">${fmt(data.totalIncome)}</div>
+              </div>
+            </td>
+            <td style="width:33%;padding:4px">
+              <div style="background:#FFEBEE;border-radius:8px;padding:10px;text-align:center">
+                <div style="color:#C62828;font-size:10px;font-weight:600;margin-bottom:2px">Egresos</div>
+                <div style="color:#B71C1C;font-size:15px;font-weight:800">${fmt(data.totalExpenses)}</div>
+              </div>
+            </td>
+            <td style="width:33%;padding:4px">
+              <div style="background:${netBg};border-radius:8px;padding:10px;text-align:center">
+                <div style="color:${netColor};font-size:10px;font-weight:600;margin-bottom:2px">Saldo neto</div>
+                <div style="color:${netColor};font-size:15px;font-weight:800">${fmt(data.netBalance)}</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        ${Object.keys(data.paymentTotals).length > 0 ? `
+        <div style="margin-bottom:12px">${paymentBreakdown(data.paymentTotals)}</div>` : ''}
+
+        <!-- Movements -->
+        <div style="background:#fff;border:1px solid #e8e8e8;border-radius:10px;overflow:hidden;margin-bottom:12px">
+          <div style="padding:10px 14px;border-bottom:1px solid #f0f0f0;font-size:13px;font-weight:700;color:#1B4332">
+            Movimientos del día (${data.movements.length})
+          </div>
+          <div style="overflow-x:auto">${movementsTable(data.movements)}</div>
+        </div>
+
+        <!-- Top products -->
+        ${data.topProducts.length > 0 ? `
+        <div style="background:#fff;border:1px solid #e8e8e8;border-radius:10px;overflow:hidden;margin-bottom:24px">
+          <div style="padding:10px 14px;border-bottom:1px solid #f0f0f0;font-size:13px;font-weight:700;color:#1B4332">
+            Top 5 productos más vendidos
+          </div>
+          ${topProductsTable(data.topProducts)}
+        </div>` : `<div style="margin-bottom:24px"></div>`}
+      `;
+    })
+    .join('<hr style="border:none;border-top:2px dashed #e0e0e0;margin:8px 0 24px">');
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Resumen General — Todas las sucursales</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f7f4;font-family:'Helvetica Neue',Arial,sans-serif">
+  <table style="width:100%;max-width:700px;margin:0 auto;background:#f4f7f4">
+    <tr>
+      <td style="padding:24px 16px">
+
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#1B4332 0%,#2D6A4F 100%);border-radius:16px;padding:28px 32px;margin-bottom:24px;text-align:center">
+          <div style="font-size:28px;margin-bottom:6px">🥚</div>
+          <h1 style="margin:0 0 4px;color:#ffffff;font-size:22px;font-weight:800">Huevos Point</h1>
+          <div style="color:#B7E4C7;font-size:14px;font-weight:600">Resumen General — Super Admin</div>
+          <div style="color:#D8F3DC;font-size:13px;margin-top:6px">${capitalizeFirst(dateFormatted)}</div>
+          <div style="color:#95D5B2;font-size:12px;margin-top:4px">${tenantsData.length} sucursal${tenantsData.length !== 1 ? 'es' : ''}</div>
+        </div>
+
+        <!-- Global totals -->
+        <div style="margin-bottom:24px">
+          <div style="display:flex;align-items:center;margin-bottom:10px">
+            <div style="width:4px;height:20px;background:#2D6A4F;border-radius:2px;margin-right:10px"></div>
+            <h2 style="margin:0;color:#1B4332;font-size:15px;font-weight:700">Totales consolidados</h2>
+          </div>
+          ${globalCards}
+        </div>
+
+        <!-- Per-tenant sections -->
+        ${tenantBlocks}
+
+        <!-- Footer -->
+        <div style="text-align:center;color:#aaa;font-size:11px;margin-top:16px;padding-bottom:16px">
+          Este correo fue generado automáticamente por Huevos Point.<br>
+          Por favor no respondas a este email.
+        </div>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+};
+
+module.exports = { buildSummaryEmail, buildConsolidatedEmail };
