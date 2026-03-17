@@ -15,11 +15,6 @@ import {
 import { PieChart, pieArcLabelClasses } from '@mui/x-charts/PieChart';
 import { useDrawingArea } from '@mui/x-charts/hooks';
 import { styled } from '@mui/material/styles';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs from 'dayjs';
-import 'dayjs/locale/es';
 import api from '../services/api';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import InsertChartRoundedIcon from '@mui/icons-material/InsertChartRounded';
@@ -210,16 +205,27 @@ const PieLegend = ({ products }) => {
 const fmt = (n) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 }).format(n);
 
+const todayYM = () => {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const monthLabel = (ym) => {
+  const [year, month] = ym.split('-');
+  return new Date(year, month - 1, 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+};
+
 const MonthlyBalanceCard = () => {
-  const [selectedMonth, setSelectedMonth] = useState(dayjs());
+  const [selectedYM, setSelectedYM] = useState(todayYM);
   const [balance, setBalance] = useState(null);
   const [loadingBalance, setLoadingBalance] = useState(true);
 
-  const fetchBalance = useCallback(async (date) => {
+  const fetchBalance = useCallback(async (ym) => {
+    const [year, month] = ym.split('-');
     try {
       setLoadingBalance(true);
       const { data } = await api.get('/metrics/monthly-balance', {
-        params: { year: date.year(), month: date.month() + 1 },
+        params: { year: parseInt(year, 10), month: parseInt(month, 10) },
       });
       setBalance(data.data);
     } catch {
@@ -230,11 +236,11 @@ const MonthlyBalanceCard = () => {
   }, []);
 
   useEffect(() => {
-    fetchBalance(selectedMonth);
-  }, [fetchBalance, selectedMonth]);
+    fetchBalance(selectedYM);
+  }, [fetchBalance, selectedYM]);
 
-  const isCurrentMonth = selectedMonth.isSame(dayjs(), 'month');
-  const monthLabel = selectedMonth.locale('es').format('MMMM YYYY');
+  const isCurrentMonth = selectedYM === todayYM();
+  const label = monthLabel(selectedYM);
 
   return (
     <Card sx={{ borderRadius: 3, boxShadow: '0px 4px 20px rgba(0,0,0,0.05)', mb: 0 }}>
@@ -246,16 +252,20 @@ const MonthlyBalanceCard = () => {
               Saldo neto del mes{isCurrentMonth ? ' (en curso)' : ''}
             </Typography>
           </Box>
-          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
-            <DatePicker
-              views={['year', 'month']}
-              value={selectedMonth}
-              onChange={(v) => v && setSelectedMonth(v)}
-              maxDate={dayjs()}
-              label="Mes"
-              slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
-            />
-          </LocalizationProvider>
+          <input
+            type="month"
+            value={selectedYM}
+            max={todayYM()}
+            onChange={(e) => e.target.value && setSelectedYM(e.target.value)}
+            style={{
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid #ccc',
+              fontSize: 14,
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+            }}
+          />
         </Box>
 
         {loadingBalance ? (
@@ -306,7 +316,7 @@ const MonthlyBalanceCard = () => {
                   {fmt(balance.netBalance)}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
-                  {monthLabel}
+                  {label}
                 </Typography>
               </Box>
             </Grid>
