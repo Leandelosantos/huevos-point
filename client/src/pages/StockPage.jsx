@@ -4,7 +4,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -16,14 +15,11 @@ import {
   Skeleton,
   Chip,
 } from '@mui/material';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
-import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import InventoryRoundedIcon from '@mui/icons-material/InventoryRounded';
 import api from '../services/api';
 import ProductModal from '../components/stock/ProductModal';
-import ImportStockDialog from '../components/stock/ImportStockDialog';
-import { showErrorAlert, showErrorToast, showSuccessToast, showConfirmation } from '../utils/sweetAlert';
+import { showErrorToast, showSuccessToast } from '../utils/sweetAlert';
 
 const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
   style: 'currency',
@@ -35,7 +31,6 @@ const StockPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [importModalOpen, setImportModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
   const fetchProducts = useCallback(async () => {
@@ -54,42 +49,15 @@ const StockPage = () => {
     fetchProducts();
   }, [fetchProducts]);
 
-  const handleAdd = () => {
-    setEditingProduct(null);
-    setModalOpen(true);
-  };
-
   const handleEdit = (product) => {
     setEditingProduct(product);
     setModalOpen(true);
-  };
-
-  const handleDeleteClick = async (product) => {
-    const isConfirmed = await showConfirmation(
-      'Eliminar Producto',
-      `¿Estás seguro de eliminar "${product.name}"? El producto será desactivado.`
-    );
-
-    if (isConfirmed) {
-      try {
-        await api.delete(`/products/${product.id}`);
-        showSuccessToast(`"${product.name}" eliminado exitosamente`);
-        fetchProducts();
-      } catch (err) {
-        showErrorAlert('Error', err.response?.data?.message || 'Error al eliminar el producto');
-      }
-    }
   };
 
   const handleModalSuccess = () => {
     setModalOpen(false);
     showSuccessToast(editingProduct ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente');
     setEditingProduct(null);
-    fetchProducts();
-  };
-
-  const handleImportSuccess = () => {
-    setImportModalOpen(false);
     fetchProducts();
   };
 
@@ -112,27 +80,6 @@ const StockPage = () => {
             Inventario de productos
           </Typography>
         </Box>
-        {/* Botones ocultos temporalmente
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', width: { xs: '100%', md: 'auto' } }}>
-          <Button
-            id="btn-import-stock"
-            variant="outlined"
-            onClick={() => setImportModalOpen(true)}
-            sx={{ px: { xs: 1, sm: 3 }, width: { xs: '100%', sm: 'auto' } }}
-          >
-            Importar Stock
-          </Button>
-          <Button
-            id="btn-add-product"
-            variant="contained"
-            startIcon={<AddRoundedIcon />}
-            onClick={handleAdd}
-            sx={{ px: { xs: 1, sm: 3 }, width: { xs: '100%', sm: 'auto' } }}
-          >
-            Agregar Producto
-          </Button>
-        </Box>
-        */}
       </Box>
 
       {/* Products Table */}
@@ -202,15 +149,6 @@ const StockPage = () => {
                             <EditRoundedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        {/* <Tooltip title="Eliminar">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteClick(product)}
-                            sx={{ color: 'error.main', ml: 0.5 }}
-                          >
-                            <DeleteRoundedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip> */}
                       </TableCell>
                     </TableRow>
                   ))
@@ -229,13 +167,6 @@ const StockPage = () => {
         }}
         onSuccess={handleModalSuccess}
         product={editingProduct}
-      />
-
-      {/* Import Stock Modal */}
-      <ImportStockDialog
-        open={importModalOpen}
-        onClose={() => setImportModalOpen(false)}
-        onSuccess={handleImportSuccess}
       />
     </Box>
   );

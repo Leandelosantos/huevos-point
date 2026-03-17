@@ -79,6 +79,9 @@ const PurchaseModal = ({ open, onClose, onSuccess, products }) => {
       setReceiptMimeType(mime);
       setReceiptFileName(file.name);
     };
+    reader.onerror = () => {
+      showErrorAlert('Error', 'No se pudo leer el archivo. Intente nuevamente.');
+    };
     reader.readAsDataURL(file);
   };
 

@@ -49,7 +49,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => 
     if (isSuperAdmin) {
       api.get('/tenants')
         .then(({ data }) => setAllTenants(data.data || []))
-        .catch(() => {});
+        .catch((err) => console.warn('[Sidebar] No se pudieron cargar las sucursales:', err.message));
     }
   }, [isSuperAdmin]);
 

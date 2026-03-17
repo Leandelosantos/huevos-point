@@ -79,7 +79,6 @@ const getPurchases = async (tenantId, query) => {
 const getPurchaseReceipt = async (id, tenantId) => {
   const purchase = await purchasesRepository.findReceiptById(id, tenantId);
   if (!purchase || !purchase.receiptData) {
-    const AppError = require('../../utils/AppError');
     throw new AppError('Comprobante no encontrado', 404);
   }
   return { receiptData: purchase.receiptData, receiptMimeType: purchase.receiptMimeType };

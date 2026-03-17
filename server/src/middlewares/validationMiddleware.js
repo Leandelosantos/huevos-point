@@ -27,6 +27,10 @@ const validateSale = [
   body('items.*.quantity')
     .isFloat({ gt: 0 })
     .withMessage('La cantidad debe ser mayor a 0'),
+  body('items.*.discount')
+    .optional()
+    .isFloat({ min: 0, max: 100 })
+    .withMessage('El descuento debe estar entre 0 y 100'),
   handleValidationErrors,
 ];
 
