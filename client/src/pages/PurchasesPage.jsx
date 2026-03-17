@@ -26,12 +26,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { showSuccessToast, showErrorAlert, showErrorToast, showWarningAlert } from '../utils/sweetAlert';
 import PurchaseModal from '../components/purchases/PurchaseModal';
-
-const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
-  style: 'currency',
-  currency: 'ARS',
-  minimumFractionDigits: 2,
-});
+import { CURRENCY_FORMAT } from '../utils/formatters';
 
 const PurchasesPage = () => {
   const { isAdmin } = useAuth();

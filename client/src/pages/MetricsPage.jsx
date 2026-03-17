@@ -22,6 +22,7 @@ import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
 import TrendingDownRoundedIcon from '@mui/icons-material/TrendingDownRounded';
 import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceWalletRounded';
 import { showErrorToast } from '../utils/sweetAlert';
+import { CURRENCY_FORMAT } from '../utils/formatters';
 
 const curMonthName = new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' });
 const prevDate = new Date();
@@ -202,8 +203,6 @@ const PieLegend = ({ products }) => {
   );
 };
 
-const fmt = (n) =>
-  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 }).format(n);
 
 const todayYM = () => {
   const n = new Date();
@@ -283,7 +282,7 @@ const MonthlyBalanceCard = () => {
                   </Typography>
                 </Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: 'success.dark' }}>
-                  {fmt(balance.totalIncome)}
+                  {CURRENCY_FORMAT.format(balance.totalIncome)}
                 </Typography>
               </Box>
             </Grid>
@@ -296,7 +295,7 @@ const MonthlyBalanceCard = () => {
                   </Typography>
                 </Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: 'error.dark' }}>
-                  {fmt(balance.totalExpenses)}
+                  {CURRENCY_FORMAT.format(balance.totalExpenses)}
                 </Typography>
               </Box>
             </Grid>
@@ -313,7 +312,7 @@ const MonthlyBalanceCard = () => {
                   </Typography>
                 </Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: balance.netBalance >= 0 ? 'primary.dark' : 'error.dark' }}>
-                  {fmt(balance.netBalance)}
+                  {CURRENCY_FORMAT.format(balance.netBalance)}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
                   {label}

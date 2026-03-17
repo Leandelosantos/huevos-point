@@ -22,12 +22,7 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ShoppingCartRoundedIcon from '@mui/icons-material/ShoppingCartRounded';
 import LocalOfferRoundedIcon from '@mui/icons-material/LocalOfferRounded';
 import api from '../../services/api';
-
-const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
-  style: 'currency',
-  currency: 'ARS',
-  minimumFractionDigits: 2,
-});
+import { CURRENCY_FORMAT } from '../../utils/formatters';
 
 const EMPTY_ITEM = { productId: '', quantity: '', discount: '', discountConcept: '' };
 

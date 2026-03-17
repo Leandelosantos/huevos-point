@@ -13,7 +13,7 @@ const dailySummary = async (req, res) => {
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
   if (!env.CRON_SECRET || token !== env.CRON_SECRET) {
-    return res.status(401).json({ success: false, message: 'Unauthorized' });
+    return res.status(401).json({ success: false, message: 'No autorizado' });
   }
 
   // Allow overriding date via query param for testing: ?date=2026-03-16

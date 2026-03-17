@@ -34,12 +34,7 @@ import { useAuth } from '../context/AuthContext';
 import SaleModal from '../components/sales/SaleModal';
 import ExpenseModal from '../components/expenses/ExpenseModal';
 import { showErrorAlert, showErrorToast, showSuccessToast } from '../utils/sweetAlert';
-
-const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', {
-  style: 'currency',
-  currency: 'ARS',
-  minimumFractionDigits: 2,
-});
+import { CURRENCY_FORMAT } from '../utils/formatters';
 
 const DashboardPage = () => {
   const { isAdmin, activeTenant } = useAuth();
