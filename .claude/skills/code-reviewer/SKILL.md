@@ -1,209 +1,109 @@
 ---
 name: code-reviewer
-description: Comprehensive code review skill for TypeScript, JavaScript, Python, Swift, Kotlin, Go. Includes automated code analysis, best practice checking, security scanning, and review checklist generation. Use when reviewing pull requests, providing code feedback, identifying issues, or ensuring code quality standards.
+description: Code review skill personalizado para Huevos Point. Stack: React 19 + MUI v6 + Node.js + Express + Sequelize + PostgreSQL. Multi-tenant, JWT auth, Vercel serverless. Usar al revisar PRs, detectar bugs, analizar seguridad o evaluar calidad antes de merge.
 ---
 
-# Code Reviewer
+# Code Reviewer — Huevos Point
 
-Complete toolkit for code reviewer with modern tools and best practices.
+Skill de revisión de código especializado para el proyecto Huevos Point.
 
-## Quick Start
+## Contexto del Proyecto
 
-### Main Capabilities
+- **Frontend:** React 19, MUI v6, React Router v7, React Hook Form, dayjs, ExcelJS, Vite
+- **Backend:** Node.js, Express, Sequelize ORM, PostgreSQL
+- **Auth:** JWT (RS256), roles: `superadmin` | `admin` | `employee`
+- **Multi-tenant:** tabla `user_tenants`, header `x-tenant-id`, `activeTenant` en AuthContext
+- **Deploy:** Vercel (serverless), entrada en `server/api/index.js`
+- **Respuesta API estándar:** `{ success: bool, data: any, message?: string, error?: string }`
 
-This skill provides three core capabilities through automated scripts:
+## Proceso de Revisión
 
-```bash
-# Script 1: Pr Analyzer
-python scripts/pr_analyzer.py [options]
+### Paso 1 — Leer el código afectado
+Siempre leer los archivos modificados ANTES de opinar. No asumir nada del código sin verlo.
 
-# Script 2: Code Quality Checker
-python scripts/code_quality_checker.py [options]
+### Paso 2 — Aplicar checklist por capa
 
-# Script 3: Review Report Generator
-python scripts/review_report_generator.py [options]
+**Backend (Controller → Service → Repository):**
+- [ ] Controller solo llama al service, no contiene lógica de negocio
+- [ ] Service contiene la lógica, usa AppError para errores operacionales
+- [ ] Repository solo hace queries Sequelize, sin lógica de negocio
+- [ ] Todo error llega a `next(error)`, nunca `res.status(...).json(...)` directo en catch
+- [ ] Respuesta usa formato `{ success, data, message }`
+- [ ] Rutas protegidas con `authMiddleware` + `requireRole(...)`
+- [ ] Inputs validados con `express-validator` antes de llegar al controller
+- [ ] Queries multi-tenant siempre incluyen `tenantId` en el `where`
+- [ ] Operaciones con múltiples escrituras usan `sequelize.transaction()`
+- [ ] Passwords hasheadas con bcrypt (hook Sequelize `beforeCreate/beforeUpdate`)
+
+**Frontend (Pages → Components → Services):**
+- [ ] Pages orquestan estado y fetch; Components son presentacionales
+- [ ] Errores de API usan `showErrorToast` (no `showErrorAlert`) para no bloquear UI
+- [ ] Formato de moneda usa `CURRENCY_FORMAT` de `utils/formatters.js`
+- [ ] Fechas manejadas con `dayjs` o formato explícito `YYYY-MM-DD` para evitar desfase UTC
+- [ ] `useCallback` en funciones de fetch para evitar re-renders infinitos
+- [ ] `activeTenant` de AuthContext usado para operaciones del tenant activo
+- [ ] Formularios con React Hook Form; validación antes de submit
+- [ ] No hay `import React` innecesario (React 19 no lo requiere, excepto para `React.Fragment`)
+
+**Seguridad:**
+- [ ] `JWT_SECRET` no tiene fallback hardcodeado en producción
+- [ ] Login tiene rate limiter estricto (10 req/15min)
+- [ ] Descuento validado server-side (0–100)
+- [ ] `CRON_SECRET` valida el header `Authorization: Bearer`
+- [ ] No hay secrets en el código fuente
+
+**Performance:**
+- [ ] Queries Sequelize usan `include` (eager loading), no lazy loading en loops
+- [ ] Listas grandes tienen paginación o filtro por fecha
+- [ ] Imágenes/archivos base64 no se incluyen en responses de listas
+
+## Arquitectura de Módulos (Backend)
+
+```
+server/src/modules/<modulo>/
+├── <modulo>.routes.js      ← define rutas + middlewares
+├── <modulo>.controller.js  ← recibe req/res, llama service
+├── <modulo>.service.js     ← lógica de negocio
+└── <modulo>.repository.js  ← acceso a BD (Sequelize)
 ```
 
-## Core Capabilities
+## Convenciones Obligatorias
 
-### 1. Pr Analyzer
+- **Commits:** Conventional Commits (`feat:`, `fix:`, `refactor:`, `chore:`)
+- **Ramas:** `feature/nombre`, `fix/nombre`
+- **API routes:** `/api/<recurso>` (ej: `/api/sales`, `/api/purchases`)
+- **Soft delete:** `isActive: false`, nunca DELETE físico en productos/usuarios
+- **Migraciones:** idempotentes en `server/api/index.js` con check de `information_schema`
 
-Automated tool for pr analyzer tasks.
+## Anti-patrones a Detectar
 
-**Features:**
-- Automated scaffolding
-- Best practices built-in
-- Configurable templates
-- Quality checks
+| Anti-patrón | Corrección |
+|------------|-----------|
+| `AppError` importado dentro de función | Mover al top del archivo |
+| `catch(() => {})` vacío | Al menos `console.warn` con contexto |
+| `CURRENCY_FORMAT` definido localmente | Importar de `utils/formatters.js` |
+| Query sin `tenantId` en `where` | Agregar filtro de tenant siempre |
+| `res.json()` dentro de catch (no `next(error)`) | Usar `next(error)` |
+| Estado de módulo (fuera de componente) para fechas dinámicas | Mover dentro del componente |
+| `import React` innecesario | Eliminar (excepto si usa `React.Fragment`) |
+| Fallback de secret hardcodeado | Validar y lanzar en producción |
 
-**Usage:**
-```bash
-python scripts/pr_analyzer.py <project-path> [options]
-```
-
-### 2. Code Quality Checker
-
-Comprehensive analysis and optimization tool.
-
-**Features:**
-- Deep analysis
-- Performance metrics
-- Recommendations
-- Automated fixes
-
-**Usage:**
-```bash
-python scripts/code_quality_checker.py <target-path> [--verbose]
-```
-
-### 3. Review Report Generator
-
-Advanced tooling for specialized tasks.
-
-**Features:**
-- Expert-level automation
-- Custom configurations
-- Integration ready
-- Production-grade output
-
-**Usage:**
-```bash
-python scripts/review_report_generator.py [arguments] [options]
-```
-
-## Reference Documentation
-
-### Code Review Checklist
-
-Comprehensive guide available in `references/code_review_checklist.md`:
-
-- Detailed patterns and practices
-- Code examples
-- Best practices
-- Anti-patterns to avoid
-- Real-world scenarios
-
-### Coding Standards
-
-Complete workflow documentation in `references/coding_standards.md`:
-
-- Step-by-step processes
-- Optimization strategies
-- Tool integrations
-- Performance tuning
-- Troubleshooting guide
-
-### Common Antipatterns
-
-Technical reference guide in `references/common_antipatterns.md`:
-
-- Technology stack details
-- Configuration examples
-- Integration patterns
-- Security considerations
-- Scalability guidelines
-
-## Tech Stack
-
-**Languages:** TypeScript, JavaScript, Python, Go, Swift, Kotlin
-**Frontend:** React, Next.js, React Native, Flutter
-**Backend:** Node.js, Express, GraphQL, REST APIs
-**Database:** PostgreSQL, Prisma, NeonDB, Supabase
-**DevOps:** Docker, Kubernetes, Terraform, GitHub Actions, CircleCI
-**Cloud:** AWS, GCP, Azure
-
-## Development Workflow
-
-### 1. Setup and Configuration
+## Comandos de Revisión
 
 ```bash
-# Install dependencies
-npm install
-# or
-pip install -r requirements.txt
+# Build del cliente (detecta errores de compilación)
+cd client && npm run build
 
-# Configure environment
-cp .env.example .env
+# Verificar que el servidor arranca sin errores
+cd server && node -e "require('./src/app')"
+
+# Ejecutar tests
+cd server && npm test
+cd client && npm test
 ```
 
-### 2. Run Quality Checks
+## Referencias
 
-```bash
-# Use the analyzer script
-python scripts/code_quality_checker.py .
-
-# Review recommendations
-# Apply fixes
-```
-
-### 3. Implement Best Practices
-
-Follow the patterns and practices documented in:
-- `references/code_review_checklist.md`
-- `references/coding_standards.md`
-- `references/common_antipatterns.md`
-
-## Best Practices Summary
-
-### Code Quality
-- Follow established patterns
-- Write comprehensive tests
-- Document decisions
-- Review regularly
-
-### Performance
-- Measure before optimizing
-- Use appropriate caching
-- Optimize critical paths
-- Monitor in production
-
-### Security
-- Validate all inputs
-- Use parameterized queries
-- Implement proper authentication
-- Keep dependencies updated
-
-### Maintainability
-- Write clear code
-- Use consistent naming
-- Add helpful comments
-- Keep it simple
-
-## Common Commands
-
-```bash
-# Development
-npm run dev
-npm run build
-npm run test
-npm run lint
-
-# Analysis
-python scripts/code_quality_checker.py .
-python scripts/review_report_generator.py --analyze
-
-# Deployment
-docker build -t app:latest .
-docker-compose up -d
-kubectl apply -f k8s/
-```
-
-## Troubleshooting
-
-### Common Issues
-
-Check the comprehensive troubleshooting section in `references/common_antipatterns.md`.
-
-### Getting Help
-
-- Review reference documentation
-- Check script output messages
-- Consult tech stack documentation
-- Review error logs
-
-## Resources
-
-- Pattern Reference: `references/code_review_checklist.md`
-- Workflow Guide: `references/coding_standards.md`
-- Technical Guide: `references/common_antipatterns.md`
-- Tool Scripts: `scripts/` directory
+- Checklist detallado: `references/code_review_checklist.md`
+- Estándares de código: `references/coding_standards.md`
+- Anti-patrones comunes: `references/common_antipatterns.md`

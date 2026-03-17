@@ -1,215 +1,131 @@
 ---
 name: senior-architect
-description: "Comprehensive software architecture skill for designing scalable, maintainable systems using ReactJS, NextJS, NodeJS, Express, React Native, Swift, Kotlin, Flutter, Postgres, GraphQL, Go, Python."
+description: Skill de arquitectura de software personalizado para Huevos Point. Stack: React 19 + MUI v6 + Node.js + Express + Sequelize + PostgreSQL. Multi-tenant, JWT auth, Vercel serverless. Usar para diseñar nuevos módulos, evaluar decisiones técnicas, planear escalabilidad o agregar integraciones.
 risk: unknown
 source: community
 date_added: "2026-02-27"
 ---
 
-# Senior Architect
+# Senior Architect — Huevos Point
 
-Complete toolkit for senior architect with modern tools and best practices.
+Skill de arquitectura especializado para el proyecto Huevos Point.
 
-## Quick Start
+## Arquitectura Actual
 
-### Main Capabilities
-
-This skill provides three core capabilities through automated scripts:
-
-```bash
-# Script 1: Architecture Diagram Generator
-python scripts/architecture_diagram_generator.py [options]
-
-# Script 2: Project Architect
-python scripts/project_architect.py [options]
-
-# Script 3: Dependency Analyzer
-python scripts/dependency_analyzer.py [options]
+```
+┌─────────────────────────────────────────────────────┐
+│                   VERCEL (serverless)                │
+│                                                      │
+│  ┌──────────────────┐    ┌────────────────────────┐ │
+│  │   client/ (SPA)  │    │  server/api/index.js   │ │
+│  │   React 19       │◄──►│  Node.js + Express     │ │
+│  │   MUI v6 + Vite  │    │  Sequelize ORM         │ │
+│  └──────────────────┘    └────────────┬───────────┘ │
+└───────────────────────────────────────┼─────────────┘
+                                        │
+                            ┌───────────▼──────────┐
+                            │   PostgreSQL (Neon)   │
+                            │   DATABASE_URL        │
+                            └──────────────────────┘
 ```
 
-## Core Capabilities
+## Stack Tecnológico
 
-### 1. Architecture Diagram Generator
+| Capa | Tecnología | Versión |
+|------|-----------|---------|
+| Frontend | React | 19 |
+| UI | MUI (Material UI) | v6 |
+| Build | Vite | latest |
+| HTTP client | Axios | latest |
+| Formularios | React Hook Form | latest |
+| Backend | Node.js + Express | latest |
+| ORM | Sequelize | v6 |
+| BD | PostgreSQL | (Neon serverless) |
+| Auth | JWT (jsonwebtoken) | latest |
+| Validación API | express-validator | latest |
+| Seguridad | helmet, cors, express-rate-limit | latest |
+| Email | nodemailer | latest |
+| Deploy | Vercel (serverless) | — |
 
-Automated tool for architecture diagram generator tasks.
+## Estructura del Proyecto
 
-**Features:**
-- Automated scaffolding
-- Best practices built-in
-- Configurable templates
-- Quality checks
-
-**Usage:**
-```bash
-python scripts/architecture_diagram_generator.py <project-path> [options]
+```
+test-agy2/
+├── client/src/
+│   ├── pages/              # Una página por ruta
+│   ├── components/         # Subdirectorios por dominio
+│   ├── hooks/              # Custom hooks reutilizables
+│   ├── services/api.js     # Instancia Axios global
+│   ├── context/AuthContext # Estado global de auth + tenant
+│   ├── utils/              # formatters.js, sweetAlert.js
+│   └── theme/              # MUI theme config
+├── server/
+│   ├── api/index.js        # Entrada Vercel + migraciones
+│   └── src/
+│       ├── app.js          # Express setup, middlewares, rutas
+│       ├── modules/        # Un directorio por dominio
+│       │   └── <modulo>/
+│       │       ├── <modulo>.routes.js
+│       │       ├── <modulo>.controller.js
+│       │       ├── <modulo>.service.js
+│       │       └── <modulo>.repository.js
+│       ├── models/         # Sequelize models + associations
+│       ├── middlewares/    # auth, role, tenant, validation, error
+│       ├── config/         # database.js, environment.js
+│       └── utils/          # AppError.js, auditLogger.js, mailer.js
+└── server/vercel.json      # Cron jobs (horario UTC)
 ```
 
-### 2. Project Architect
+## Módulos Existentes
 
-Comprehensive analysis and optimization tool.
+| Módulo | Ruta API | Descripción |
+|--------|---------|-------------|
+| auth | `/api/auth` | Login, JWT |
+| dashboard | `/api/dashboard` | Resumen diario del tenant |
+| sales | `/api/sales` | Ventas multi-ítem con stock |
+| expenses | `/api/expenses` | Egresos por concepto |
+| products | `/api/products` | ABM de productos + stock |
+| purchases | `/api/purchases` | Compras + recibo base64 |
+| metrics | `/api/metrics` | Balance mensual, stock bajo |
+| audit | `/api/audit-logs` | Log de acciones (solo admin) |
+| users | `/api/users` | ABM de usuarios |
+| tenants | `/api/tenants` | ABM de sucursales |
+| cron | `/api/cron` | Resumen diario por email |
 
-**Features:**
-- Deep analysis
-- Performance metrics
-- Recommendations
-- Automated fixes
+## Roles y Permisos
 
-**Usage:**
-```bash
-python scripts/project_architect.py <target-path> [--verbose]
-```
+| Rol | Acceso |
+|-----|--------|
+| `superadmin` | Todo — puede cambiar de tenant, ver todos |
+| `admin` | Su tenant: ventas, egresos, stock, compras, usuarios, reportes |
+| `employee` | Su tenant: solo registrar ventas y egresos |
 
-### 3. Dependency Analyzer
+## Cuándo Usar Esta Skill
 
-Advanced tooling for specialized tasks.
+- Diseñar un nuevo módulo (endpoint + modelo + UI)
+- Evaluar si una nueva dependencia es necesaria
+- Decidir si escalar un servicio o mantener el monolito
+- Planear migraciones de esquema (nuevas columnas)
+- Agregar nuevas integraciones (pagos, email, webhooks)
+- Revisar impacto de un cambio en la arquitectura multi-tenant
 
-**Features:**
-- Expert-level automation
-- Custom configurations
-- Integration ready
-- Production-grade output
-
-**Usage:**
-```bash
-python scripts/dependency_analyzer.py [arguments] [options]
-```
-
-## Reference Documentation
-
-### Architecture Patterns
-
-Comprehensive guide available in `references/architecture_patterns.md`:
-
-- Detailed patterns and practices
-- Code examples
-- Best practices
-- Anti-patterns to avoid
-- Real-world scenarios
-
-### System Design Workflows
-
-Complete workflow documentation in `references/system_design_workflows.md`:
-
-- Step-by-step processes
-- Optimization strategies
-- Tool integrations
-- Performance tuning
-- Troubleshooting guide
-
-### Tech Decision Guide
-
-Tech decisions in `references/tech_decision_guide.md`:
-
-- Technology stack details
-- Configuration examples
-- Integration patterns
-- Security considerations
-- Scalability guidelines
-
-## Tech Stack
-
-**Languages:** TypeScript, JavaScript, Python, Go, Swift, Kotlin
-**Frontend:** React, Next.js, React Native, Flutter
-**Backend:** Node.js, Express, GraphQL, REST APIs
-**Database:** PostgresSQL, Prisma, NeonDB, Supabase
-**DevOps:** Docker, Kubernetes, Terraform, GitHub Actions, CircleCI
-**Cloud:** AWS, GCP, Azure
-
-## Development Workflow
-
-### 1. Setup and Configuration
+## Comandos Clave
 
 ```bash
-# Install dependencies
-npm install
-# or
-pip install -r requirements.txt
+# Desarrollo local
+cd client && npm run dev       # Vite HMR en :5173
+cd server && npm run dev       # nodemon en :3000
 
-# Configure environment
-cp .env.example .env
+# Verificar que todo compila y funciona
+cd client && npm run build
+cd server && npm test
+
+# Vercel CLI (si instalado)
+vercel dev                     # Simula Vercel serverless localmente
 ```
 
-### 2. Run Quality Checks
+## Referencias
 
-```bash
-# Use the analyzer script
-python scripts/project_architect.py .
-
-# Review recommendations
-# Apply fixes
-```
-
-### 3. Implement Best Practices
-
-Follow the patterns and practices documented in:
-- `references/architecture_patterns.md`
-- `references/system_design_workflows.md`
-- `references/tech_decision_guide.md`
-
-## Best Practices Summary
-
-### Code Quality
-- Follow established patterns
-- Write comprehensive tests
-- Document decisions
-- Review regularly
-
-### Performance
-- Measure before optimizing
-- Use appropriate caching
-- Optimize critical paths
-- Monitor in production
-
-### Security
-- Validate all inputs
-- Use parameterized queries
-- Implement proper authentication
-- Keep dependencies updated
-
-### Maintainability
-- Write clear code
-- Use consistent naming
-- Add helpful comments
-- Keep it simple
-
-## Common Commands
-
-```bash
-# Development
-npm run dev
-npm run build
-npm run test
-npm run lint
-
-# Analysis
-python scripts/project_architect.py .
-python scripts/dependency_analyzer.py --analyze
-
-# Deployment
-docker build -t app:latest .
-docker-compose up -d
-kubectl apply -f k8s/
-```
-
-## Troubleshooting
-
-### Common Issues
-
-Check the comprehensive troubleshooting section in `references/tech_decision_guide.md`.
-
-### Getting Help
-
-- Review reference documentation
-- Check script output messages
-- Consult tech stack documentation
-- Review error logs
-
-## Resources
-
-- Pattern Reference: `references/architecture_patterns.md`
-- Workflow Guide: `references/system_design_workflows.md`
-- Technical Guide: `references/tech_decision_guide.md`
-- Tool Scripts: `scripts/` directory
-
-## When to Use
-When you need to execute the workflow or actions described in the overview.
+- `references/architecture_patterns.md` — patrones del proyecto (Controller→Service→Repository, multi-tenant, transacciones)
+- `references/system_design_workflows.md` — cómo diseñar un nuevo módulo, migraciones, rutas de escalabilidad
+- `references/tech_decision_guide.md` — por qué se eligió cada tecnología y cuándo cambiarla

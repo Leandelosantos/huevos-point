@@ -1,103 +1,197 @@
-# Common Antipatterns
+# Anti-patrones Comunes — Huevos Point
 
-## Overview
+## Backend
 
-This reference guide provides comprehensive information for code reviewer.
+### ❌ AppError importado dentro de función
+```js
+// MAL
+const getPurchaseReceipt = async (id, tenantId) => {
+  if (!purchase) {
+    const AppError = require('../../utils/AppError'); // ❌ dentro de función
+    throw new AppError('No encontrado', 404);
+  }
+};
 
-## Patterns and Practices
+// BIEN
+const AppError = require('../../utils/AppError'); // ✅ al top del archivo
+const getPurchaseReceipt = async (id, tenantId) => {
+  if (!purchase) throw new AppError('No encontrado', 404);
+};
+```
 
-### Pattern 1: Best Practice Implementation
+### ❌ res.json() en catch en lugar de next(error)
+```js
+// MAL
+} catch (error) {
+  res.status(500).json({ success: false, message: error.message }); // ❌
+}
 
-**Description:**
-Detailed explanation of the pattern.
-
-**When to Use:**
-- Scenario 1
-- Scenario 2
-- Scenario 3
-
-**Implementation:**
-```typescript
-// Example code implementation
-export class Example {
-  // Implementation details
+// BIEN
+} catch (error) {
+  next(error); // ✅ el errorMiddleware maneja el formato
 }
 ```
 
-**Benefits:**
-- Benefit 1
-- Benefit 2
-- Benefit 3
+### ❌ Query sin tenantId
+```js
+// MAL — devuelve datos de todos los tenants
+const sales = await Sale.findAll({ where: { saleDate: date } }); // ❌
 
-**Trade-offs:**
-- Consider 1
-- Consider 2
-- Consider 3
+// BIEN
+const sales = await Sale.findAll({ where: { saleDate: date, tenantId } }); // ✅
+```
 
-### Pattern 2: Advanced Technique
+### ❌ Operaciones múltiples sin transacción
+```js
+// MAL — si falla update del stock, la venta ya fue guardada
+await SaleItem.bulkCreate(items);
+await product.update({ stockQuantity: newStock }); // ❌ sin transacción
 
-**Description:**
-Another important pattern for code reviewer.
-
-**Implementation:**
-```typescript
-// Advanced example
-async function advancedExample() {
-  // Code here
+// BIEN
+const t = await sequelize.transaction();
+try {
+  await SaleItem.bulkCreate(items, { transaction: t });
+  await product.update({ stockQuantity: newStock }, { transaction: t });
+  await t.commit();
+} catch (err) {
+  await t.rollback();
+  throw err;
 }
 ```
 
-## Guidelines
+### ❌ JWT_SECRET con fallback hardcodeado
+```js
+// MAL — si no está la var, usa un secreto conocido
+JWT_SECRET: process.env.JWT_SECRET || 'fallback_secret_change_me', // ❌
 
-### Code Organization
-- Clear structure
-- Logical separation
-- Consistent naming
-- Proper documentation
+// BIEN — falla rápido en producción
+if (NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET requerido en producción');
+}
+JWT_SECRET: process.env.JWT_SECRET, // ✅
+```
 
-### Performance Considerations
-- Optimization strategies
-- Bottleneck identification
-- Monitoring approaches
-- Scaling techniques
+### ❌ Migración no idempotente
+```js
+// MAL — falla si la columna ya existe
+await sequelize.query('ALTER TABLE purchases ADD COLUMN receipt_data TEXT'); // ❌
 
-### Security Best Practices
-- Input validation
-- Authentication
-- Authorization
-- Data protection
+// BIEN — verifica antes de agregar
+const [cols] = await sequelize.query(`
+  SELECT column_name FROM information_schema.columns
+  WHERE table_name = 'purchases' AND column_name = 'receipt_data'
+`);
+if (cols.length === 0) {
+  await sequelize.query('ALTER TABLE purchases ADD COLUMN receipt_data TEXT'); // ✅
+}
+```
 
-## Common Patterns
+---
 
-### Pattern A
-Implementation details and examples.
+## Frontend
 
-### Pattern B
-Implementation details and examples.
+### ❌ CURRENCY_FORMAT definido localmente
+```js
+// MAL — duplicado en cada archivo
+const CURRENCY_FORMAT = new Intl.NumberFormat('es-AR', { // ❌
+  style: 'currency', currency: 'ARS', minimumFractionDigits: 2,
+});
 
-### Pattern C
-Implementation details and examples.
+// BIEN — importar el compartido
+import { CURRENCY_FORMAT } from '../utils/formatters'; // ✅
+```
 
-## Anti-Patterns to Avoid
+### ❌ Variables de módulo para valores que cambian con el tiempo
+```js
+// MAL — se calculan una sola vez al cargar el módulo
+const curMonthName = new Date().toLocaleString('es-ES', { month: 'long' }); // ❌
 
-### Anti-Pattern 1
-What not to do and why.
+// BIEN — calcular dentro del componente para que se actualicen
+const MetricsPage = () => {
+  const curMonthName = new Date().toLocaleString('es-ES', { month: 'long' }); // ✅
+  ...
+};
+```
 
-### Anti-Pattern 2
-What not to do and why.
+### ❌ useEffect con fetch sin useCallback
+```jsx
+// MAL — fetchData se recrea en cada render → loop infinito
+useEffect(() => {
+  const fetchData = async () => { ... }; // ❌ definida dentro del effect
+  fetchData();
+}, [fetchData]); // fetchData siempre es nueva → re-ejecuta siempre
 
-## Tools and Resources
+// BIEN
+const fetchData = useCallback(async () => { ... }, []); // ✅
+useEffect(() => { fetchData(); }, [fetchData]);
+```
 
-### Recommended Tools
-- Tool 1: Purpose
-- Tool 2: Purpose
-- Tool 3: Purpose
+### ❌ showErrorAlert para errores de fetch (bloquea la UI)
+```js
+// MAL — alert modal bloquea la pantalla
+} catch {
+  showErrorAlert('Error', 'No se pudieron cargar los productos'); // ❌
+}
 
-### Further Reading
-- Resource 1
-- Resource 2
-- Resource 3
+// BIEN — toast no bloquea
+} catch {
+  showErrorToast('Error al cargar productos'); // ✅
+}
+// showErrorAlert solo para acciones destructivas que requieren confirmación
+```
 
-## Conclusion
+### ❌ Catch vacío
+```js
+// MAL — falla silenciosamente, imposible debuggear
+.catch(() => {}); // ❌
 
-Key takeaways for using this reference guide effectively.
+// BIEN — al menos loguear
+.catch((err) => console.warn('[Sidebar] Error cargando sucursales:', err.message)); // ✅
+```
+
+### ❌ FileReader sin onerror
+```js
+// MAL — falla silenciosamente si el archivo no se puede leer
+reader.onload = () => { ... };
+reader.readAsDataURL(file); // ❌ sin onerror
+
+// BIEN
+reader.onload = () => { ... };
+reader.onerror = () => { showErrorAlert('Error', 'No se pudo leer el archivo.'); }; // ✅
+reader.readAsDataURL(file);
+```
+
+### ❌ Acceso directo a props sin null check
+```jsx
+// MAL — crash si product es null (producto eliminado)
+<td>{item.product.name}</td> // ❌
+
+// BIEN
+<td>{item.product?.name || 'Producto'}</td> // ✅
+```
+
+---
+
+## Seguridad
+
+### ❌ Rate limiting solo global para login
+```js
+// MAL — 200 req/15min es demasiado permisivo para login
+app.use(rateLimit({ max: 200 })); // ❌ igual para todos los endpoints
+
+// BIEN — limiter estricto solo para login
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 });
+app.use('/api/auth/login', loginLimiter); // ✅
+```
+
+### ❌ Validación de descuento solo en frontend
+```js
+// MAL — la validación HTML puede bypassearse
+<input type="number" min="0" max="100" /> // ❌ solo client-side
+
+// BIEN — también validar en el middleware del servidor
+body('items.*.discount')
+  .optional()
+  .isFloat({ min: 0, max: 100 })
+  .withMessage('El descuento debe estar entre 0 y 100') // ✅
+```

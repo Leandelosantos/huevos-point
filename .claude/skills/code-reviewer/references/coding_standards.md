@@ -1,103 +1,165 @@
-# Coding Standards
+# Estándares de Código — Huevos Point
 
-## Overview
+## Estructura de Archivos
 
-This reference guide provides comprehensive information for code reviewer.
-
-## Patterns and Practices
-
-### Pattern 1: Best Practice Implementation
-
-**Description:**
-Detailed explanation of the pattern.
-
-**When to Use:**
-- Scenario 1
-- Scenario 2
-- Scenario 3
-
-**Implementation:**
-```typescript
-// Example code implementation
-export class Example {
-  // Implementation details
-}
+```
+test-agy2/
+├── client/src/
+│   ├── pages/          # Una página por ruta (DashboardPage, StockPage, etc.)
+│   ├── components/     # Subdirectorios por dominio (sales/, expenses/, stock/, etc.)
+│   ├── hooks/          # Custom hooks reutilizables
+│   ├── services/api.js # Instancia axios con baseURL e interceptores
+│   ├── context/        # AuthContext (user, isAdmin, isSuperAdmin, activeTenant)
+│   ├── utils/
+│   │   ├── sweetAlert.js    # Toasts y alertas
+│   │   └── formatters.js    # CURRENCY_FORMAT compartido
+│   └── theme/
+├── server/src/
+│   ├── modules/<modulo>/
+│   │   ├── <modulo>.routes.js
+│   │   ├── <modulo>.controller.js
+│   │   ├── <modulo>.service.js
+│   │   └── <modulo>.repository.js  (si aplica)
+│   ├── models/          # Modelos Sequelize
+│   ├── middlewares/     # authMiddleware, roleMiddleware, validationMiddleware, errorMiddleware
+│   ├── config/          # database.js, environment.js
+│   └── utils/           # AppError.js, auditLogger.js, mailer.js
+└── server/api/index.js  # Entrada Vercel + migraciones de inicio
 ```
 
-**Benefits:**
-- Benefit 1
-- Benefit 2
-- Benefit 3
+## Naming Conventions
 
-**Trade-offs:**
-- Consider 1
-- Consider 2
-- Consider 3
+| Elemento | Convención | Ejemplo |
+|---------|-----------|---------|
+| Archivos React | PascalCase | `SaleModal.jsx`, `DashboardPage.jsx` |
+| Archivos Node.js | kebab-case | `auth.service.js`, `sales.routes.js` |
+| Variables/funciones JS | camelCase | `fetchProducts`, `totalAmount` |
+| Constantes | UPPER_SNAKE_CASE | `CURRENCY_FORMAT`, `LOW_STOCK_THRESHOLD` |
+| Modelos Sequelize | PascalCase | `Sale`, `SaleItem`, `Product` |
+| Tablas BD | snake_case | `sales`, `sale_items`, `user_tenants` |
+| Campos BD | snake_case | `tenant_id`, `sale_date`, `is_active` |
+| Props React | camelCase | `onSuccess`, `tenantId`, `isAdmin` |
 
-### Pattern 2: Advanced Technique
+## Patrones de Código
 
-**Description:**
-Another important pattern for code reviewer.
-
-**Implementation:**
-```typescript
-// Advanced example
-async function advancedExample() {
-  // Code here
-}
+### Controller (backend)
+```js
+const createSale = async (req, res, next) => {
+  try {
+    const data = await salesService.createSale({
+      ...req.body,
+      tenantId: req.tenantId,
+      userId: req.user.id,
+    });
+    res.status(201).json({ success: true, data, message: 'Venta registrada' });
+  } catch (error) {
+    next(error); // SIEMPRE next(error), nunca res.json en catch
+  }
+};
 ```
 
-## Guidelines
+### Service con transacción (backend)
+```js
+const createPurchase = async (data) => {
+  const t = await sequelize.transaction();
+  try {
+    const result = await repo.create(data, t);
+    await product.update({ stockQuantity: newStock }, { transaction: t });
+    await t.commit();
+    return result;
+  } catch (error) {
+    await t.rollback();
+    throw error; // re-throw para que llegue al errorMiddleware
+  }
+};
+```
 
-### Code Organization
-- Clear structure
-- Logical separation
-- Consistent naming
-- Proper documentation
+### Fetch en componente React
+```jsx
+const fetchData = useCallback(async () => {
+  try {
+    setLoading(true);
+    const { data } = await api.get('/endpoint');
+    setData(data.data);
+  } catch {
+    showErrorToast('Error al cargar los datos');
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
-### Performance Considerations
-- Optimization strategies
-- Bottleneck identification
-- Monitoring approaches
-- Scaling techniques
+useEffect(() => { fetchData(); }, [fetchData]);
+```
 
-### Security Best Practices
-- Input validation
-- Authentication
-- Authorization
-- Data protection
+### Formateo de moneda
+```js
+// CORRECTO: importar el formatter compartido
+import { CURRENCY_FORMAT } from '../utils/formatters';
+CURRENCY_FORMAT.format(amount);
 
-## Common Patterns
+// INCORRECTO: no definir localmente
+const fmt = new Intl.NumberFormat(...); // ❌
+```
 
-### Pattern A
-Implementation details and examples.
+## Manejo de Fechas
 
-### Pattern B
-Implementation details and examples.
+Siempre usar formato explícito para evitar desfase UTC/local:
 
-### Pattern C
-Implementation details and examples.
+```js
+// Backend — fecha de hoy en Argentina
+new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' })
+// → "2026-03-17"
 
-## Anti-Patterns to Avoid
+// Frontend — fecha de hoy con dayjs
+import dayjs from 'dayjs';
+dayjs().format('YYYY-MM-DD')
+// → "2026-03-17"
 
-### Anti-Pattern 1
-What not to do and why.
+// Input date HTML (patrón del proyecto, sin librerías externas)
+<input type="date" value={fecha} onChange={...} />  // ✅ formato YYYY-MM-DD nativo
+<input type="month" value={ym} onChange={...} />    // ✅ para selección de mes
+```
 
-### Anti-Pattern 2
-What not to do and why.
+## Variables de Entorno
 
-## Tools and Resources
+| Variable | Requerida en prod | Notas |
+|---------|-----------------|-------|
+| `JWT_SECRET` | ✅ Obligatoria | Lanza error fatal si falta en producción |
+| `DATABASE_URL` | ✅ Obligatoria | PostgreSQL connection string |
+| `CRON_SECRET` | ✅ Para cron jobs | Endpoint bloqueado si está vacío |
+| `SMTP_*` | Opcional | Emails deshabilitados si está vacío |
+| `CORS_ORIGIN` | Opcional | `true` acepta cualquier origen en prod |
 
-### Recommended Tools
-- Tool 1: Purpose
-- Tool 2: Purpose
-- Tool 3: Purpose
+## Respuestas API
 
-### Further Reading
-- Resource 1
-- Resource 2
-- Resource 3
+```js
+// Éxito con datos
+res.json({ success: true, data: result });
 
-## Conclusion
+// Éxito con mensaje
+res.status(201).json({ success: true, data: result, message: 'Creado correctamente' });
 
-Key takeaways for using this reference guide effectively.
+// Error operacional (AppError) → status + mensaje visible
+throw new AppError('Producto no encontrado', 404);
+
+// Error no operacional → errorMiddleware devuelve 500
+// { success: false, message: 'Error interno del servidor' }
+```
+
+## Commits — Conventional Commits
+
+| Tipo | Cuándo usarlo |
+|-----|--------------|
+| `feat` | Nueva funcionalidad |
+| `fix` | Corrección de bug |
+| `refactor` | Cambio que no agrega ni corrige |
+| `chore` | Configuración, dependencias |
+| `docs` | Solo documentación |
+
+Ejemplos:
+```
+feat(sales): add discount concept field to sale items
+fix(auth): remove hardcoded JWT_SECRET fallback
+refactor(metrics): extract CURRENCY_FORMAT to shared utils
+chore(deps): remove unused xlsx package
+```
