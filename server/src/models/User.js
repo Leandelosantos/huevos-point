@@ -66,9 +66,4 @@ User.prototype.validatePassword = async function (plainPassword) {
   return bcrypt.compare(plainPassword, this.password);
 };
 
-User.prototype.toSafeJSON = function () {
-  const { password, ...safeUser } = this.toJSON();
-  return safeUser;
-};
-
 module.exports = User;

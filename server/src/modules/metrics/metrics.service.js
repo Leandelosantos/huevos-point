@@ -2,6 +2,8 @@ const { Op } = require('sequelize');
 const { Product, SaleItem, Sale, Expense } = require('../../models');
 const sequelize = require('../../config/database');
 
+const LOW_STOCK_THRESHOLD = 30;
+
 class MetricsService {
   async getTopProductsForMonth(startDate, endDate, tenantId) {
     const query = `
@@ -65,7 +67,7 @@ class MetricsService {
     const products = await Product.findAll({
       where: {
         stockQuantity: {
-          [Op.lt]: 30,
+          [Op.lt]: LOW_STOCK_THRESHOLD,
         },
         isActive: true,
         tenantId,

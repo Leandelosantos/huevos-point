@@ -24,10 +24,6 @@ import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceW
 import { showErrorToast } from '../utils/sweetAlert';
 import { CURRENCY_FORMAT } from '../utils/formatters';
 
-const curMonthName = new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' });
-const prevDate = new Date();
-prevDate.setMonth(prevDate.getMonth() - 1);
-const prevMonthName = prevDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
 
 // Paleta de colores armoniosa para los productos
 const PRODUCT_COLORS = [
@@ -349,6 +345,11 @@ const MetricsPage = () => {
   useEffect(() => {
     fetchMetrics();
   }, [fetchMetrics]);
+
+  const curMonthName = new Date().toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+  const prevDate = new Date();
+  prevDate.setMonth(prevDate.getMonth() - 1);
+  const prevMonthName = prevDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
 
   const curTotal = metrics.currentMonthTop.reduce((acc, p) => acc + p.totalSold, 0);
   const prevTotal = metrics.previousMonthTop.reduce((acc, p) => acc + p.totalSold, 0);
