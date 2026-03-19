@@ -29,6 +29,8 @@ const environment = {
   SMTP_FROM_EMAIL: process.env.SMTP_FROM_EMAIL || '',
   // Cron
   CRON_SECRET: process.env.CRON_SECRET || '',
+  // Demo mode
+  DEMO_PASSWORD: process.env.DEMO_PASSWORD || 'demo2025',
 };
 
 module.exports = environment;

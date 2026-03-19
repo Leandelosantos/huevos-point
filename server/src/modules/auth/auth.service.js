@@ -4,6 +4,22 @@ const authRepository = require('./auth.repository');
 const AppError = require('../../utils/AppError');
 
 const login = async (username, password) => {
+  // Demo mode: bypass DB entirely — no data from real tenants ever exposed
+  if (username === 'demo') {
+    if (password !== env.DEMO_PASSWORD) {
+      throw new AppError('Credenciales incorrectas', 401);
+    }
+    const payload = {
+      id: 0,
+      username: 'demo',
+      fullName: 'Usuario Demo',
+      role: 'demo',
+      tenants: [{ id: 0, name: 'Demo – Huevos Point' }],
+    };
+    const token = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '4h' });
+    return { token, user: payload };
+  }
+
   const user = await authRepository.findByUsername(username);
 
   if (!user) {

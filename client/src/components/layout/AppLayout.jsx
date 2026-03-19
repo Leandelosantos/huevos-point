@@ -1,16 +1,21 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box, AppBar, Toolbar, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material';
+import { Box, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import Sidebar, { DRAWER_WIDTH } from './Sidebar';
+import DemoBanner from './DemoBanner';
+import { useAuth } from '../../context/AuthContext';
 
 const COLLAPSED_WIDTH = 80;
+
+const DEMO_BANNER_HEIGHT = 36;
 
 const AppLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [desktopOpen, setDesktopOpen] = useState(true);
+  const { isDemo } = useAuth();
 
   const handleDrawerToggle = () => {
     if (isMobile) {
@@ -22,13 +27,18 @@ const AppLayout = () => {
 
   const actualDrawerWidth = isMobile ? 0 : (desktopOpen ? DRAWER_WIDTH : COLLAPSED_WIDTH);
 
+  const topOffset = isDemo ? DEMO_BANNER_HEIGHT : 0;
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%', maxWidth: '100vw', overflowX: 'hidden', bgcolor: 'background.default' }}>
+      {isDemo && <DemoBanner />}
+
       <Sidebar
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
         desktopOpen={desktopOpen}
         onDrawerToggle={handleDrawerToggle}
+        topOffset={topOffset}
       />
 
       {/* Floating Hamburger Button for Mobile */}
@@ -39,16 +49,14 @@ const AppLayout = () => {
           onClick={handleDrawerToggle}
           sx={{
             position: 'fixed',
-            top: 16,
+            top: 16 + topOffset,
             left: 16,
-            zIndex: theme.zIndex.drawer - 1, // Below the drawer but above other content
+            zIndex: theme.zIndex.drawer - 1,
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             backdropFilter: 'blur(8px)',
             color: '#1B4332',
-            '&:hover': {
-              backgroundColor: '#FFFFFF',
-            }
+            '&:hover': { backgroundColor: '#FFFFFF' },
           }}
         >
           <MenuRoundedIcon />
@@ -71,7 +79,7 @@ const AppLayout = () => {
           sx={{
             flex: 1,
             p: { xs: 2, sm: 3, md: 4 },
-            pt: { xs: 8, sm: 3, md: 4 }, // Extra top padding on mobile to accommodate the floating button
+            pt: { xs: `${8 * 8 + topOffset}px`, sm: `${3 * 8 + topOffset}px`, md: `${4 * 8 + topOffset}px` },
             maxWidth: '100%',
             mx: 'auto',
           }}

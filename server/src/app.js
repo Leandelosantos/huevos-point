@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const errorMiddleware = require('./middlewares/errorMiddleware');
+const demoMiddleware = require('./middlewares/demoMiddleware');
 
 // Register models and associations (required for Vercel serverless)
 require('./models');
@@ -52,6 +53,9 @@ const loginLimiter = rateLimit({
 // Body parsing (5mb to allow base64-encoded receipt images on purchases)
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// Demo mode interceptor — must run before all routes (no DB access for role=demo)
+app.use(demoMiddleware);
 
 // API Routes
 app.use('/api/auth/login', loginLimiter);

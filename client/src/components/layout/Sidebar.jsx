@@ -36,8 +36,8 @@ import logo from '../../assets/logo.png';
 const DRAWER_WIDTH = 260;
 const COLLAPSED_WIDTH = 80;
 
-const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => {
-  const { user, isAdmin, isSuperAdmin, activeTenant, switchTenant, logout } = useAuth();
+const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOffset = 0 }) => {
+  const { user, isAdmin, isSuperAdmin, isDemo, activeTenant, switchTenant, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -89,7 +89,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => 
   // ... menuItems, handleNavigate, handleLogout logic remains identical
   const menuItems = [
     { label: 'Inicio', icon: <DashboardRoundedIcon />, path: '/' },
-    ...(isAdmin || isSuperAdmin
+    ...(isAdmin || isSuperAdmin || isDemo
       ? [
           { label: 'Stock', icon: <InventoryRoundedIcon />, path: '/stock' },
           { label: 'Compras', icon: <ShoppingCartRoundedIcon />, path: '/purchases' },
@@ -242,14 +242,14 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => 
                 {user?.fullName || 'Usuario'}
               </Typography>
               <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.65rem' }}>
-                {user?.role === 'superadmin' ? 'Super Admin' : user?.role === 'admin' ? 'Administrador' : 'Empleado'}
+                {user?.role === 'superadmin' ? 'Super Admin' : user?.role === 'admin' ? 'Administrador' : user?.role === 'demo' ? 'Modo Demo' : 'Empleado'}
               </Typography>
             </Box>
           )}
         </Box>
 
-        {/* M:N Menu Cambio de Sucursal */}
-        {(isSuperAdmin || (user?.tenants?.length ?? 0) > 1) && (
+        {/* M:N Menu Cambio de Sucursal — oculto en modo demo */}
+        {!isDemo && (isSuperAdmin || (user?.tenants?.length ?? 0) > 1) && (
           <Box sx={{ p: 1, pt: 0 }}>
             {(!isMobile ? desktopOpen : true) && (
               <Button
@@ -347,7 +347,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => 
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': { width: DRAWER_WIDTH },
+          '& .MuiDrawer-paper': { width: DRAWER_WIDTH, top: topOffset, height: `calc(100% - ${topOffset}px)` },
         }}
       >
         {drawerContent}
@@ -363,6 +363,8 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle }) => 
             boxSizing: 'border-box',
             borderRight: 'none',
             overflowX: 'hidden',
+            top: topOffset,
+            height: `calc(100% - ${topOffset}px)`,
             transition: theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.leavingScreen,

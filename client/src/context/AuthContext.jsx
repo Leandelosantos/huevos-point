@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }) => {
 
   const isAuthenticated = Boolean(user);
   const isSuperAdmin = user?.role === 'superadmin';
+  const isDemo = user?.role === 'demo';
   const isAdmin = user?.role === 'admin' || isSuperAdmin;
 
   const login = useCallback(async (username, password) => {
@@ -81,11 +82,12 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     isAdmin,
     isSuperAdmin,
+    isDemo,
     activeTenant,
     login,
     logout,
     switchTenant,
-  }), [user, loading, isAuthenticated, isAdmin, isSuperAdmin, activeTenant, login, logout, switchTenant]);
+  }), [user, loading, isAuthenticated, isAdmin, isSuperAdmin, isDemo, activeTenant, login, logout, switchTenant]);
 
   return (
     <AuthContext.Provider value={value}>
