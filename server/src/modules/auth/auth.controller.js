@@ -6,14 +6,16 @@ const login = async (req, res, next) => {
     const { username, password } = req.body;
     const result = await authService.login(username, password);
 
-    await createAuditLog({
-      tenantId: req.tenantId || null,
-      userId: result.user.id,
-      username: result.user.username,
-      actionType: 'LOGIN',
-      description: `Usuario ${result.user.username} inició sesión`,
-      ipAddress: req.ip,
-    });
+    if (result.user.role !== 'demo') {
+      await createAuditLog({
+        tenantId: req.tenantId || null,
+        userId: result.user.id,
+        username: result.user.username,
+        actionType: 'LOGIN',
+        description: `Usuario ${result.user.username} inició sesión`,
+        ipAddress: req.ip,
+      });
+    }
 
     res.json({
       success: true,
