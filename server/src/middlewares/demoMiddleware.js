@@ -53,31 +53,44 @@ const demoMiddleware = (req, res, next) => {
     return res.json({ success: true, message: 'Acción registrada (modo demo)' });
   }
 
+  // ── Seleccionar dataset según sucursal activa ───────────────────────────
+  const isDemo2 = req.headers['x-tenant-id'] === '-1';
+  const d = {
+    dashboard:      isDemo2 ? demoData.dashboard2      : demoData.dashboard,
+    products:       isDemo2 ? demoData.products2       : demoData.products,
+    sales:          isDemo2 ? demoData.sales2          : demoData.sales,
+    expenses:       isDemo2 ? demoData.expenses2       : demoData.expenses,
+    auditLogs:      isDemo2 ? demoData.auditLogs2      : demoData.auditLogs,
+    metrics:        isDemo2 ? demoData.metrics2        : demoData.metrics,
+    monthlyBalance: isDemo2 ? demoData.monthlyBalance2 : demoData.monthlyBalance,
+    purchasesPage:  isDemo2 ? demoData.purchasesPage2  : demoData.purchasesPage,
+  };
+
   // ── GETs: devolver datos ficticios ──────────────────────────────────────
   if (method === 'GET') {
     if (path === '/api/dashboard/summary') {
-      return res.json({ success: true, data: demoData.dashboard });
+      return res.json({ success: true, data: d.dashboard });
     }
     if (path === '/api/products') {
-      return res.json({ success: true, data: demoData.products });
+      return res.json({ success: true, data: d.products });
     }
     if (path === '/api/sales') {
-      return res.json({ success: true, data: demoData.sales });
+      return res.json({ success: true, data: d.sales });
     }
     if (path === '/api/expenses') {
-      return res.json({ success: true, data: demoData.expenses });
+      return res.json({ success: true, data: d.expenses });
     }
     if (path === '/api/audit-logs') {
-      return res.json({ success: true, data: demoData.auditLogs });
+      return res.json({ success: true, data: d.auditLogs });
     }
     if (path === '/api/metrics') {
-      return res.json({ success: true, data: demoData.metrics });
+      return res.json({ success: true, data: d.metrics });
     }
     if (path === '/api/metrics/monthly-balance') {
-      return res.json({ success: true, data: demoData.monthlyBalance });
+      return res.json({ success: true, data: d.monthlyBalance });
     }
     if (path === '/api/purchases') {
-      return res.json({ success: true, data: demoData.purchasesPage });
+      return res.json({ success: true, data: d.purchasesPage });
     }
     if (/^\/api\/purchases\/\d+\/receipt$/.test(path)) {
       return res.json({ success: true, data: { receiptData: null, receiptMimeType: null } });

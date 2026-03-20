@@ -14,7 +14,10 @@ const login = async (username, password) => {
       username: 'demo',
       fullName: 'Usuario Demo',
       role: 'demo',
-      tenants: [{ id: 0, name: 'Demo – Huevos Point' }],
+      tenants: [
+        { id: 0,  name: 'Demo – Huevos Point' },
+        { id: -1, name: 'Sucursal demo 2' },
+      ],
     };
     const token = jwt.sign(payload, env.JWT_SECRET, { expiresIn: '4h' });
     return { token, user: payload };

@@ -248,8 +248,8 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
           )}
         </Box>
 
-        {/* M:N Menu Cambio de Sucursal — oculto en modo demo */}
-        {!isDemo && (isSuperAdmin || (user?.tenants?.length ?? 0) > 1) && (
+        {/* M:N Menu Cambio de Sucursal */}
+        {(isSuperAdmin || (user?.tenants?.length ?? 0) > 1) && (
           <Box sx={{ p: 1, pt: 0 }}>
             {(!isMobile ? desktopOpen : true) && (
               <Button
