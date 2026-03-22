@@ -36,6 +36,12 @@ const Sale = sequelize.define('Sale', {
     defaultValue: DataTypes.NOW,
     field: 'sale_date',
   },
+  paymentSplits: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    defaultValue: null,
+    field: 'payment_splits',
+  },
 }, {
   tableName: 'sales',
   updatedAt: false,

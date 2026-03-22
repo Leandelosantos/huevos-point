@@ -37,7 +37,11 @@ const salesMovements = [
     type: 'VENTA',
     amount: 1567.50,
     discountAmount: 82.50,
-    paymentMethod: 'Tarjeta',
+    paymentMethod: 'Efectivo',
+    paymentSplits: [
+      { method: 'Efectivo', amount: 567.50 },
+      { method: 'Tarjeta',  amount: 1000.00 },
+    ],
     description: 'Huevos Marrones x30 x1 + Bandejas Plásticas x2 (-5% cliente frecuente)',
     details: [
       { productName: 'Huevos Marrones x30', quantity: 1, discount: 5, discountConcept: 'Cliente frecuente' },
@@ -241,6 +245,10 @@ const salesMovements2 = [
     amount: 1260.00,
     discountAmount: 0,
     paymentMethod: 'Efectivo',
+    paymentSplits: [
+      { method: 'Efectivo',   amount: 660.00 },
+      { method: 'Cuenta DNI', amount: 600.00 },
+    ],
     description: 'Huevos Blancos x30 x1 + Bandejas Plásticas x4',
     details: [
       { productName: 'Huevos Blancos x30', quantity: 1, discount: 0, discountConcept: null },

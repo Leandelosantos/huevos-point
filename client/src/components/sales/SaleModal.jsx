@@ -25,11 +25,12 @@ import api from '../../services/api';
 import { CURRENCY_FORMAT } from '../../utils/formatters';
 
 const EMPTY_ITEM = { productId: '', quantity: '', discount: '', discountConcept: '' };
+const PAYMENT_METHODS = ['Efectivo', 'Mercado Pago', 'Transferencia', 'Cuenta DNI'];
 
 const SaleModal = ({ open, onClose, onSuccess }) => {
   const [products, setProducts] = useState([]);
   const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
-  const [paymentMethod, setPaymentMethod] = useState('Efectivo');
+  const [paymentSplits, setPaymentSplits] = useState([{ method: 'Efectivo', amount: '' }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -37,7 +38,7 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
     if (open) {
       fetchProducts();
       setItems([{ ...EMPTY_ITEM }]);
-      setPaymentMethod('Efectivo');
+      setPaymentSplits([{ method: 'Efectivo', amount: '' }]);
       setError('');
     }
   }, [open]);
@@ -55,7 +56,6 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
     setItems((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
-      // Si se borra el descuento, limpiar también el concepto
       if (field === 'discount' && (!value || parseFloat(value) <= 0)) {
         updated[index].discountConcept = '';
       }
@@ -63,9 +63,7 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
     });
   };
 
-  const addItem = () => {
-    setItems((prev) => [...prev, { ...EMPTY_ITEM }]);
-  };
+  const addItem = () => setItems((prev) => [...prev, { ...EMPTY_ITEM }]);
 
   const removeItem = (index) => {
     if (items.length <= 1) return;
@@ -84,13 +82,61 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
 
   const getTotal = () => items.reduce((sum, item) => sum + getSubtotal(item), 0);
 
+  // ── Payment split handlers ────────────────────────────────────────────────
+
+  const hasSplits = paymentSplits.length > 1;
+  const splitTotal = paymentSplits.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
+  const remaining = getTotal() - splitTotal;
+
+  const handleSplitChange = (index, field, value) => {
+    setPaymentSplits((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const addPaymentSplit = () => {
+    setPaymentSplits((prev) => {
+      const usedMethods = prev.map((s) => s.method);
+      const nextMethod = PAYMENT_METHODS.find((m) => !usedMethods.includes(m)) || 'Transferencia';
+      if (prev.length === 1) {
+        // Pre-fill first split with current total so user only edits the second
+        return [
+          { method: prev[0].method, amount: String(getTotal().toFixed(2)) },
+          { method: nextMethod, amount: '' },
+        ];
+      }
+      return [...prev, { method: nextMethod, amount: '' }];
+    });
+  };
+
+  const removePaymentSplit = (index) => {
+    setPaymentSplits((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      // Back to 1 split — clear amount (implied = total)
+      if (updated.length === 1) return [{ method: updated[0].method, amount: '' }];
+      return updated;
+    });
+  };
+
+  // ── Validation ────────────────────────────────────────────────────────────
+
+  const isPaymentValid = () => {
+    if (paymentSplits.length === 1) return Boolean(paymentSplits[0].method);
+    const total = getTotal();
+    const allFilled = paymentSplits.every((p) => p.method && parseFloat(p.amount) > 0);
+    return allFilled && Math.abs(splitTotal - total) < 0.02;
+  };
+
   const isValid = () => {
-    return items.every((item) => {
+    const itemsValid = items.every((item) => {
       if (!item.productId || !item.quantity || parseFloat(item.quantity) <= 0) return false;
       const product = getProductById(item.productId);
       if (!product) return false;
       return parseFloat(item.quantity) <= parseFloat(product.stockQuantity);
     });
+    return itemsValid && isPaymentValid();
   };
 
   const handleSubmit = async () => {
@@ -98,7 +144,10 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
     setSubmitting(true);
     try {
       const payload = {
-        paymentMethod,
+        paymentSplits:
+          paymentSplits.length === 1
+            ? [{ method: paymentSplits[0].method, amount: getTotal() }]
+            : paymentSplits.map((s) => ({ method: s.method, amount: parseFloat(s.amount) })),
         saleDate: dayjs().format('YYYY-MM-DD'),
         items: items.map((item) => ({
           productId: parseInt(item.productId, 10),
@@ -148,7 +197,6 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
             <Box key={index} sx={{ mb: 1.5 }}>
               {index > 0 && <Divider sx={{ mb: 2 }} />}
 
-              {/* Fila principal: Producto | Cantidad | Desc. % | Subtotal | Eliminar */}
               <Box
                 sx={{
                   display: 'grid',
@@ -194,7 +242,6 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
                   slotProps={{ htmlInput: { min: 0, max: 100, step: 1 } }}
                 />
 
-                {/* Subtotal */}
                 <Box sx={{ pt: 1.5, textAlign: 'right', minWidth: 90 }}>
                   <Typography variant="caption" color="text.secondary" display="block">
                     Subtotal
@@ -224,7 +271,6 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
                 </IconButton>
               </Box>
 
-              {/* Fila condicional: Concepto de descuento */}
               <Collapse in={hasDiscount} timeout={250} unmountOnExit>
                 <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <LocalOfferRoundedIcon fontSize="small" sx={{ color: 'warning.main', flexShrink: 0 }} />
@@ -249,29 +295,97 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
 
         <Divider sx={{ my: 2.5 }} />
 
+        {/* ── Sección de pago ──────────────────────────────────────────────── */}
         <Box
           sx={{
             display: 'flex',
             flexDirection: { xs: 'column', sm: 'row' },
             justifyContent: 'space-between',
-            alignItems: { xs: 'flex-start', sm: 'center' },
+            alignItems: 'flex-start',
             gap: 2,
           }}
         >
-          <TextField
-            select
-            label="Método de pago"
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-            size="medium"
-            sx={{ width: { xs: '100%', sm: 240 } }}
-          >
-            <MenuItem value="Efectivo">Efectivo</MenuItem>
-            <MenuItem value="Mercado Pago">Mercado Pago</MenuItem>
-            <MenuItem value="Transferencia">Transferencia</MenuItem>
-            <MenuItem value="Cuenta DNI">Cuenta DNI</MenuItem>
-          </TextField>
+          {/* Métodos de pago */}
+          <Box sx={{ flex: 1 }}>
+            {paymentSplits.map((split, index) => (
+              <Box
+                key={index}
+                sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'flex-start' }}
+              >
+                <TextField
+                  select
+                  label={index === 0 ? 'Método de pago' : `Método ${index + 1}`}
+                  value={split.method}
+                  onChange={(e) => handleSplitChange(index, 'method', e.target.value)}
+                  size="medium"
+                  sx={{ flex: 2, minWidth: 150 }}
+                >
+                  {PAYMENT_METHODS.map((m) => (
+                    <MenuItem
+                      key={m}
+                      value={m}
+                      disabled={paymentSplits.some((s, i) => i !== index && s.method === m)}
+                    >
+                      {m}
+                    </MenuItem>
+                  ))}
+                </TextField>
 
+                {hasSplits && (
+                  <TextField
+                    label="Monto"
+                    type="number"
+                    value={split.amount}
+                    onChange={(e) => handleSplitChange(index, 'amount', e.target.value)}
+                    size="medium"
+                    sx={{ flex: 1.5, minWidth: 110 }}
+                    slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
+                  />
+                )}
+
+                {hasSplits && (
+                  <IconButton
+                    onClick={() => removePaymentSplit(index)}
+                    size="medium"
+                    sx={{ mt: 0.5, color: 'error.light', '&:hover': { color: 'error.main' } }}
+                  >
+                    <DeleteRoundedIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </Box>
+            ))}
+
+            {paymentSplits.length < 3 && (
+              <Button
+                startIcon={<AddRoundedIcon />}
+                onClick={addPaymentSplit}
+                size="small"
+                sx={{ mt: 0.5 }}
+              >
+                Agregar método de pago
+              </Button>
+            )}
+
+            {hasSplits && (
+              <Typography
+                variant="caption"
+                sx={{
+                  display: 'block',
+                  mt: 1,
+                  fontWeight: 600,
+                  color: Math.abs(remaining) < 0.02 ? 'success.main' : 'warning.main',
+                }}
+              >
+                {Math.abs(remaining) < 0.02
+                  ? '✓ Total distribuido correctamente'
+                  : remaining > 0
+                  ? `Pendiente de asignar: ${CURRENCY_FORMAT.format(remaining)}`
+                  : `Excede el total en: ${CURRENCY_FORMAT.format(Math.abs(remaining))}`}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Total */}
           <Box sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               Total a cobrar

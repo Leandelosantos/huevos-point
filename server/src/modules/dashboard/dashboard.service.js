@@ -61,6 +61,7 @@ const getDailyMovements = async (date, tenantId) => {
         amount: parseFloat(sale.totalAmount),
         discountAmount: totalDiscount,
         paymentMethod: sale.paymentMethod || 'Efectivo',
+        paymentSplits: sale.paymentSplits ? JSON.parse(sale.paymentSplits) : null,
         description: sale.items.map((item) =>
           `${item.product?.name || 'Producto'} x${item.quantity}${item.discount > 0 ? ` (-${item.discount}%)` : ''}`
         ).join(' + '),

@@ -3,7 +3,7 @@ const salesRepository = require('./sales.repository');
 const { Product } = require('../../models');
 const AppError = require('../../utils/AppError');
 
-const registerSale = async (userId, items, paymentMethod, tenantId, saleDate) => {
+const registerSale = async (userId, items, paymentSplits, tenantId, saleDate) => {
   const transaction = await sequelize.transaction();
 
   try {
@@ -57,11 +57,26 @@ const registerSale = async (userId, items, paymentMethod, tenantId, saleDate) =>
       );
     }
 
+    // Normalize splits: if single split with no amount, amount = total
+    const normalizedSplits = paymentSplits.length === 1
+      ? [{ method: paymentSplits[0].method, amount: totalAmount }]
+      : paymentSplits.map(s => ({ method: s.method, amount: parseFloat(s.amount) }));
+
+    if (normalizedSplits.length > 1) {
+      const splitSum = normalizedSplits.reduce((sum, s) => sum + s.amount, 0);
+      if (Math.abs(splitSum - totalAmount) > 0.05) {
+        throw new AppError('La suma de los métodos de pago no coincide con el total de la venta', 400);
+      }
+    }
+
+    const primaryPaymentMethod = normalizedSplits[0].method;
+
     const sale = await salesRepository.create(
       {
         userId,
         totalAmount,
-        paymentMethod,
+        paymentMethod: primaryPaymentMethod,
+        paymentSplits: normalizedSplits.length > 1 ? JSON.stringify(normalizedSplits) : null,
         saleDate: saleDate || new Date(),
       },
       saleItems,
@@ -75,6 +90,7 @@ const registerSale = async (userId, items, paymentMethod, tenantId, saleDate) =>
       saleId: sale.id,
       totalAmount,
       items: saleItems,
+      paymentSplits: normalizedSplits,
     };
   } catch (error) {
     await transaction.rollback();

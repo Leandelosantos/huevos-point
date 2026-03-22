@@ -124,7 +124,9 @@ const DashboardPage = () => {
           dayjs(mov.createdAt).format('HH:mm'),
           mov.type === 'VENTA' ? 'Venta' : `Egreso: ${mov.description}`,
           mov.type === 'VENTA' ? detalleText : 'N/A',
-          mov.paymentMethod || 'N/A',
+          mov.paymentSplits && mov.paymentSplits.length > 1
+            ? mov.paymentSplits.map((s) => `${s.method}: ${CURRENCY_FORMAT.format(s.amount)}`).join('\n')
+            : (mov.paymentMethod || 'N/A'),
           mov.discountAmount || 0,
           mov.amount
         ]);
@@ -296,7 +298,13 @@ const DashboardPage = () => {
               movements
                 .filter((m) => m.type === 'VENTA')
                 .reduce((acc, m) => {
-                  acc[m.paymentMethod] = (acc[m.paymentMethod] || 0) + m.amount;
+                  if (m.paymentSplits && m.paymentSplits.length > 0) {
+                    m.paymentSplits.forEach((s) => {
+                      acc[s.method] = (acc[s.method] || 0) + parseFloat(s.amount);
+                    });
+                  } else {
+                    acc[m.paymentMethod] = (acc[m.paymentMethod] || 0) + m.amount;
+                  }
                   return acc;
                 }, {})
             ).map(([method, total]) => (
@@ -483,9 +491,24 @@ const DashboardPage = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {mov.paymentMethod || 'N/A'}
-                          </Typography>
+                          {mov.paymentSplits && mov.paymentSplits.length > 1 ? (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                              {mov.paymentSplits.map((s, i) => (
+                                <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 90 }}>
+                                    {s.method}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    {CURRENCY_FORMAT.format(s.amount)}
+                                  </Typography>
+                                </Box>
+                              ))}
+                            </Box>
+                          ) : (
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {mov.paymentMethod || 'N/A'}
+                            </Typography>
+                          )}
                         </TableCell>
                         <TableCell align="right">
                           <Typography variant="body2" sx={{ fontWeight: 600, color: mov.discountAmount > 0 ? '#C62828' : 'text.disabled' }}>

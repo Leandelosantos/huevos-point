@@ -53,6 +53,16 @@ const migrationPromise = (async () => {
       console.log('[migration] updated_at added to user_tenants');
     }
 
+    // Add payment_splits to sales if missing
+    const [paymentSplitsCol] = await sequelize.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'sales' AND column_name = 'payment_splits'
+    `);
+    if (paymentSplitsCol.length === 0) {
+      await sequelize.query(`ALTER TABLE sales ADD COLUMN payment_splits TEXT DEFAULT NULL`);
+      console.log('[migration] payment_splits added to sales');
+    }
+
     // Performance indexes — composite indexes for multi-tenant filtered queries
     await sequelize.query(`CREATE INDEX IF NOT EXISTS sales_tenant_date_idx ON sales (tenant_id, sale_date)`);
     await sequelize.query(`CREATE INDEX IF NOT EXISTS expenses_tenant_date_idx ON expenses (tenant_id, expense_date)`);
