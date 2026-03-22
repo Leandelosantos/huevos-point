@@ -37,7 +37,7 @@ const mockProduct = (overrides = {}) => ({
 const baseSaleInput = {
   userId: 1,
   tenantId: 1,
-  paymentMethod: 'CASH',
+  paymentMethod: [{ method: 'CASH', amount: null }],
   saleDate: '2026-03-17',
   items: [{ productId: 1, quantity: 2, discount: 0 }],
 };
@@ -64,7 +64,7 @@ describe('salesService.registerSale', () => {
       const product = mockProduct({ stockQuantity: 10 });
       Product.findOne.mockResolvedValue(product);
 
-      await salesService.registerSale(1, [{ productId: 1, quantity: 3, discount: 0 }], 'CASH', 1, '2026-03-17');
+      await salesService.registerSale(1, [{ productId: 1, quantity: 3, discount: 0 }], [{ method: 'CASH', amount: null }], 1, '2026-03-17');
 
       expect(product.update).toHaveBeenCalledWith(
         { stockQuantity: 7 },
@@ -82,7 +82,7 @@ describe('salesService.registerSale', () => {
       await salesService.registerSale(
         1,
         [{ productId: 1, quantity: 2, discount: 0 }, { productId: 2, quantity: 1, discount: 0 }],
-        'CASH', 1, '2026-03-17'
+        [{ method: 'CASH', amount: null }], 1, '2026-03-17'
       );
 
       expect(product1.update).toHaveBeenCalledWith({ stockQuantity: 8 }, expect.anything());
@@ -93,7 +93,7 @@ describe('salesService.registerSale', () => {
       Product.findOne.mockResolvedValue(mockProduct({ stockQuantity: 1 }));
 
       await expect(
-        salesService.registerSale(1, [{ productId: 1, quantity: 5, discount: 0 }], 'CASH', 1, '2026-03-17')
+        salesService.registerSale(1, [{ productId: 1, quantity: 5, discount: 0 }], [{ method: 'CASH', amount: null }], 1, '2026-03-17')
       ).rejects.toMatchObject({ statusCode: 400 });
 
       expect(mockT.rollback).toHaveBeenCalled();
@@ -105,7 +105,7 @@ describe('salesService.registerSale', () => {
     it('sin descuento: precio=100, qty=2 → totalAmount=200', async () => {
       Product.findOne.mockResolvedValue(mockProduct({ unitPrice: 100, stockQuantity: 10 }));
 
-      await salesService.registerSale(1, [{ productId: 1, quantity: 2, discount: 0 }], 'CASH', 1, '2026-03-17');
+      await salesService.registerSale(1, [{ productId: 1, quantity: 2, discount: 0 }], [{ method: 'CASH', amount: null }], 1, '2026-03-17');
 
       expect(salesRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({ totalAmount: 200 }),
@@ -118,7 +118,7 @@ describe('salesService.registerSale', () => {
     it('con descuento 10%: precio=100, qty=2 → totalAmount=180', async () => {
       Product.findOne.mockResolvedValue(mockProduct({ unitPrice: 100, stockQuantity: 10 }));
 
-      await salesService.registerSale(1, [{ productId: 1, quantity: 2, discount: 10 }], 'CASH', 1, '2026-03-17');
+      await salesService.registerSale(1, [{ productId: 1, quantity: 2, discount: 10 }], [{ method: 'CASH', amount: null }], 1, '2026-03-17');
 
       expect(salesRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({ totalAmount: 180 }),
@@ -131,7 +131,7 @@ describe('salesService.registerSale', () => {
     it('con descuento 100%: totalAmount=0', async () => {
       Product.findOne.mockResolvedValue(mockProduct({ unitPrice: 100, stockQuantity: 10 }));
 
-      await salesService.registerSale(1, [{ productId: 1, quantity: 1, discount: 100 }], 'CASH', 1, '2026-03-17');
+      await salesService.registerSale(1, [{ productId: 1, quantity: 1, discount: 100 }], [{ method: 'CASH', amount: null }], 1, '2026-03-17');
 
       expect(salesRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({ totalAmount: 0 }),
@@ -147,7 +147,7 @@ describe('salesService.registerSale', () => {
       Product.findOne.mockResolvedValue(null);
 
       await expect(
-        salesService.registerSale(1, [{ productId: 99, quantity: 1, discount: 0 }], 'CASH', 1, '2026-03-17')
+        salesService.registerSale(1, [{ productId: 99, quantity: 1, discount: 0 }], [{ method: 'CASH', amount: null }], 1, '2026-03-17')
       ).rejects.toMatchObject({ statusCode: 404 });
 
       expect(mockT.rollback).toHaveBeenCalled();
@@ -157,7 +157,7 @@ describe('salesService.registerSale', () => {
       Product.findOne.mockResolvedValue(mockProduct({ isActive: false }));
 
       await expect(
-        salesService.registerSale(1, [{ productId: 1, quantity: 1, discount: 0 }], 'CASH', 1, '2026-03-17')
+        salesService.registerSale(1, [{ productId: 1, quantity: 1, discount: 0 }], [{ method: 'CASH', amount: null }], 1, '2026-03-17')
       ).rejects.toMatchObject({ statusCode: 404 });
     });
   });
@@ -168,7 +168,7 @@ describe('salesService.registerSale', () => {
       salesRepository.create.mockRejectedValue(new Error('DB error'));
 
       await expect(
-        salesService.registerSale(1, [{ productId: 1, quantity: 1, discount: 0 }], 'CASH', 1, '2026-03-17')
+        salesService.registerSale(1, [{ productId: 1, quantity: 1, discount: 0 }], [{ method: 'CASH', amount: null }], 1, '2026-03-17')
       ).rejects.toThrow('DB error');
 
       expect(mockT.rollback).toHaveBeenCalled();
@@ -177,7 +177,7 @@ describe('salesService.registerSale', () => {
     it('éxito → commit llamado', async () => {
       Product.findOne.mockResolvedValue(mockProduct());
 
-      await salesService.registerSale(1, [{ productId: 1, quantity: 1, discount: 0 }], 'CASH', 1, '2026-03-17');
+      await salesService.registerSale(1, [{ productId: 1, quantity: 1, discount: 0 }], [{ method: 'CASH', amount: null }], 1, '2026-03-17');
 
       expect(mockT.commit).toHaveBeenCalled();
       expect(mockT.rollback).not.toHaveBeenCalled();
