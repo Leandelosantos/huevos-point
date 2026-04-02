@@ -6,6 +6,9 @@ const SaleItem = require('./SaleItem');
 const Expense = require('./Expense');
 const AuditLog = require('./AuditLog');
 const Purchase = require('./Purchase');
+const SubscriptionPlan = require('./SubscriptionPlan');
+const Subscription = require('./Subscription');
+const SuperadminAuditLog = require('./SuperadminAuditLog');
 
 // Tenant Associations
 Tenant.belongsToMany(User, { through: { model: 'user_tenants', timestamps: false }, foreignKey: 'tenant_id', otherKey: 'user_id', as: 'users' });
@@ -45,6 +48,16 @@ SaleItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 User.hasMany(AuditLog, { foreignKey: 'userId', as: 'auditLogs' });
 AuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+// Subscription associations
+Tenant.hasOne(Subscription, { foreignKey: 'tenantId', as: 'subscription' });
+Subscription.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+
+SubscriptionPlan.hasMany(Subscription, { foreignKey: 'planId', as: 'subscriptions' });
+Subscription.belongsTo(SubscriptionPlan, { foreignKey: 'planId', as: 'plan' });
+
+// SuperadminAuditLog associations
+SuperadminAuditLog.belongsTo(Tenant, { foreignKey: 'targetTenant', as: 'tenant' });
+
 module.exports = {
   Tenant,
   User,
@@ -54,4 +67,7 @@ module.exports = {
   Expense,
   AuditLog,
   Purchase,
+  SubscriptionPlan,
+  Subscription,
+  SuperadminAuditLog,
 };

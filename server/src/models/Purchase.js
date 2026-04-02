@@ -13,6 +13,7 @@ const Purchase = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
       field: 'tenant_id',
+      references: { model: 'tenants', key: 'id' },
     },
     productId: {
       type: DataTypes.INTEGER,

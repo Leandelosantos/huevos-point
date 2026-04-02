@@ -17,6 +17,16 @@ const Tenant = sequelize.define('Tenant', {
     defaultValue: true,
     field: 'is_active',
   },
+  subscriptionStatus: {
+    type: DataTypes.STRING(20),
+    defaultValue: 'active',
+    field: 'subscription_status',
+  },
+  slug: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    unique: true,
+  },
 }, {
   tableName: 'tenants',
   timestamps: true,

@@ -11,6 +11,8 @@ import AuditPage from './pages/AuditPage';
 import MetricsPage from './pages/MetricsPage';
 import UsersPage from './pages/UsersPage';
 import PurchasesPage from './pages/PurchasesPage';
+import SuperadminDashboardPage from './pages/SuperadminDashboardPage';
+import SuperadminTenantDetailPage from './pages/SuperadminTenantDetailPage';
 
 const App = () => {
   return (
@@ -68,6 +70,22 @@ const App = () => {
                 element={
                   <ProtectedRoute requiredRole="superadmin">
                     <UsersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/superadmin"
+                element={
+                  <ProtectedRoute requiredRole="superadmin">
+                    <SuperadminDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/superadmin/tenants/:id"
+                element={
+                  <ProtectedRoute requiredRole="superadmin">
+                    <SuperadminTenantDetailPage />
                   </ProtectedRoute>
                 }
               />

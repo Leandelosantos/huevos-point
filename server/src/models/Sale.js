@@ -42,6 +42,21 @@ const Sale = sequelize.define('Sale', {
     defaultValue: null,
     field: 'payment_splits',
   },
+  source: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    defaultValue: 'manual',
+  },
+  isAutoRegistered: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    field: 'is_auto_registered',
+  },
+  mpPaymentId: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    field: 'mp_payment_id',
+  },
 }, {
   tableName: 'sales',
   updatedAt: false,
