@@ -108,7 +108,6 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
 
   const superadminItems = [
     { label: 'Dashboard Superadmin', icon: <AdminPanelSettingsRoundedIcon />, path: '/superadmin' },
-    { label: 'Tenants', icon: <BusinessRoundedIcon />, path: '/superadmin' },
   ];
 
   const handleNavigate = (path) => {
