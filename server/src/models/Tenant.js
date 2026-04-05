@@ -27,6 +27,10 @@ const Tenant = sequelize.define('Tenant', {
     allowNull: true,
     unique: true,
   },
+  theme: {
+    type: DataTypes.STRING(30),
+    defaultValue: 'verde-bosque',
+  },
 }, {
   tableName: 'tenants',
   timestamps: true,

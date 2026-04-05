@@ -1,7 +1,10 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import theme from './theme/theme';
+import { CssBaseline } from '@mui/material';
+import { ThemeProvider } from './context/ThemeContext';
+import { useAppTheme } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
 import LoginPage from './pages/LoginPage';
@@ -13,13 +16,27 @@ import UsersPage from './pages/UsersPage';
 import PurchasesPage from './pages/PurchasesPage';
 import SuperadminDashboardPage from './pages/SuperadminDashboardPage';
 import SuperadminTenantDetailPage from './pages/SuperadminTenantDetailPage';
+import ConfigPage from './pages/ConfigPage';
+
+// Sincroniza el tema del tenant activo con el ThemeContext
+const ThemeSyncer = () => {
+  const { activeTenant } = useAuth();
+  const { applyTheme } = useAppTheme();
+
+  useEffect(() => {
+    applyTheme(activeTenant?.theme);
+  }, [activeTenant?.theme, applyTheme]);
+
+  return null;
+};
 
 const App = () => {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider>
       <CssBaseline />
       <BrowserRouter>
         <AuthProvider>
+          <ThemeSyncer />
           <Routes>
             {/* Public */}
             <Route path="/login" element={<LoginPage />} />
@@ -70,6 +87,14 @@ const App = () => {
                 element={
                   <ProtectedRoute requiredRole="superadmin">
                     <UsersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/config"
+                element={
+                  <ProtectedRoute requiredRole={['admin', 'superadmin']}>
+                    <ConfigPage />
                   </ProtectedRoute>
                 }
               />

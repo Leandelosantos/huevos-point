@@ -31,7 +31,10 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSettingsRounded';
 import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
+import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import { useAuth } from '../../context/AuthContext';
+import { useAppTheme } from '../../context/ThemeContext';
+import { THEMES, DEFAULT_THEME_ID } from '../../theme/themes';
 import api from '../../services/api';
 import logo from '../../assets/logo.png';
 
@@ -40,6 +43,8 @@ const COLLAPSED_WIDTH = 80;
 
 const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOffset = 0 }) => {
   const { user, isAdmin, isSuperAdmin, isDemo, activeTenant, switchTenant, logout } = useAuth();
+  const { themeId } = useAppTheme();
+  const sidebarConfig = THEMES[themeId]?.sidebar || THEMES[DEFAULT_THEME_ID].sidebar;
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -104,6 +109,11 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
           { label: 'Usuarios', icon: <PeopleRoundedIcon />, path: '/users' },
         ]
       : []),
+    ...(isAdmin || isSuperAdmin
+      ? [
+          { label: 'Configuración', icon: <SettingsRoundedIcon />, path: '/config' },
+        ]
+      : []),
   ];
 
   const superadminItems = [
@@ -126,7 +136,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(180deg, #1B4332 0%, #2D6A4F 100%)',
+        background: sidebarConfig.bg,
         color: '#FFFFFF',
         overflowX: 'hidden',
       }}
@@ -164,8 +174,8 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
                 label={activeTenant?.name || 'Cargando...'} 
                 size="small" 
                 sx={{ 
-                  backgroundColor: '#B7E4C7', 
-                  color: '#1B4332', 
+                  backgroundColor: sidebarConfig.chip.bg,
+                  color: sidebarConfig.chip.color,
                   fontWeight: 800, 
                   fontSize: '0.65rem',
                   height: 20
@@ -207,7 +217,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
                   transition: 'all 0.2s ease',
                 }}
               >
-                <ListItemIcon sx={{ color: isActive ? '#B7E4C7' : 'rgba(255,255,255,0.6)', minWidth: (!isMobile && !desktopOpen) ? 0 : 40, justifyContent: 'center' }}>
+                <ListItemIcon sx={{ color: isActive ? sidebarConfig.accent : 'rgba(255,255,255,0.6)', minWidth: (!isMobile && !desktopOpen) ? 0 : 40, justifyContent: 'center' }}>
                   {item.icon}
                 </ListItemIcon>
                 {(!isMobile ? desktopOpen : true) && (
@@ -220,7 +230,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
                   />
                 )}
                 {isActive && (!isMobile ? desktopOpen : true) && (
-                  <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#B7E4C7' }} />
+                  <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: sidebarConfig.accent }} />
                 )}
               </ListItemButton>
             </ListItem>
@@ -261,7 +271,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
                       transition: 'all 0.2s ease',
                     }}
                   >
-                    <ListItemIcon sx={{ color: isActive ? '#B7E4C7' : 'rgba(255,255,255,0.6)', minWidth: (!isMobile && !desktopOpen) ? 0 : 40, justifyContent: 'center' }}>
+                    <ListItemIcon sx={{ color: isActive ? sidebarConfig.accent : 'rgba(255,255,255,0.6)', minWidth: (!isMobile && !desktopOpen) ? 0 : 40, justifyContent: 'center' }}>
                       {item.icon}
                     </ListItemIcon>
                     {(!isMobile ? desktopOpen : true) && (
@@ -274,7 +284,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
                       />
                     )}
                     {isActive && (!isMobile ? desktopOpen : true) && (
-                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#B7E4C7' }} />
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: sidebarConfig.accent }} />
                     )}
                   </ListItemButton>
                 </ListItem>
@@ -295,7 +305,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
             borderRadius: '10px', backgroundColor: (!isMobile && !desktopOpen) ? 'transparent' : 'rgba(255,255,255,0.08)', mb: 1,
           }}
         >
-          <Avatar sx={{ width: 36, height: 36, bgcolor: '#52B788', fontSize: '0.875rem', fontWeight: 700 }}>
+          <Avatar sx={{ width: 36, height: 36, bgcolor: sidebarConfig.avatar, fontSize: '0.875rem', fontWeight: 700 }}>
             {user?.fullName?.charAt(0) || 'U'}
           </Avatar>
           {(!isMobile ? desktopOpen : true) && (
@@ -343,7 +353,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
               onClose={handleCloseMenu}
               PaperProps={{
                 sx: {
-                  bgcolor: '#1B4332',
+                  bgcolor: sidebarConfig.chip.color,
                   color: '#fff',
                   mt: -1,
                   minWidth: 200,

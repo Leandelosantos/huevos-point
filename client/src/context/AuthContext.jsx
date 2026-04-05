@@ -76,6 +76,15 @@ export const AuthProvider = ({ children }) => {
     setActiveTenant(tenant);
   }, []);
 
+  const updateActiveTenant = useCallback((fields) => {
+    setActiveTenant((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...fields };
+      sessionStorage.setItem('activeTenant', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   const value = useMemo(() => ({
     user,
     loading,
@@ -87,7 +96,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     switchTenant,
-  }), [user, loading, isAuthenticated, isAdmin, isSuperAdmin, isDemo, activeTenant, login, logout, switchTenant]);
+    updateActiveTenant,
+  }), [user, loading, isAuthenticated, isAdmin, isSuperAdmin, isDemo, activeTenant, login, logout, switchTenant, updateActiveTenant]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -5,10 +5,14 @@ const { requireRole } = require('../../middlewares/roleMiddleware');
 
 const router = Router();
 
-// Protegemos para superadmin o admin (por si el admin en el futuro necesita configurarlo)
 router.use(authMiddleware);
-router.use(requireRole('superadmin', 'admin'));
 
-router.get('/', tenantsController.getAll);
+// Cualquier admin o superadmin puede ver/editar su sucursal actual
+router.get('/current', requireRole('admin', 'superadmin'), tenantsController.getCurrent);
+router.put('/current', requireRole('admin', 'superadmin'), tenantsController.updateCurrent);
+
+// Listado y creación: solo superadmin
+router.get('/', requireRole('superadmin'), tenantsController.getAll);
+router.post('/', requireRole('superadmin'), tenantsController.createTenant);
 
 module.exports = router;
