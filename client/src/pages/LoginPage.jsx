@@ -119,21 +119,9 @@ const LoginPage = () => {
               letterSpacing: '-0.02em',
             }}
           >
-            Huevos Point
+            Sistema integral de gestion y registro de ventas.
           </Typography>
 
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'rgba(255,255,255,0.7)',
-              fontWeight: 400,
-              lineHeight: 1.6,
-              maxWidth: 380,
-              mx: 'auto',
-            }}
-          >
-            Sistema integral de gestión
-          </Typography>
 
           {/* Feature badges */}
           <Box sx={{ display: 'flex', gap: 2, mt: 5, justifyContent: 'center', flexWrap: 'wrap' }}>
