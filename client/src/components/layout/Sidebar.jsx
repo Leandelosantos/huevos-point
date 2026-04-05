@@ -29,8 +29,6 @@ import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import StorefrontIcon from '@mui/icons-material/Storefront';
-import AdminPanelSettingsRoundedIcon from '@mui/icons-material/AdminPanelSettingsRounded';
-import BusinessRoundedIcon from '@mui/icons-material/BusinessRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
@@ -116,9 +114,6 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
       : []),
   ];
 
-  const superadminItems = [
-    { label: 'Dashboard Superadmin', icon: <AdminPanelSettingsRoundedIcon />, path: '/superadmin' },
-  ];
 
   const handleNavigate = (path) => {
     navigate(path);
@@ -238,61 +233,6 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
         })}
       </List>
 
-      {/* Superadmin section */}
-      {isSuperAdmin && (
-        <>
-          <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', mx: 2 }} />
-          {(!isMobile ? desktopOpen : true) && (
-            <Typography
-              variant="caption"
-              sx={{
-                px: 3, pt: 2, pb: 1, color: 'rgba(255,255,255,0.4)',
-                fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em',
-                display: 'block',
-              }}
-            >
-              Panel Superadmin
-            </Typography>
-          )}
-          <List sx={{ px: 1.5, pt: (!isMobile && !desktopOpen) ? 1 : 0 }}>
-            {superadminItems.map((item) => {
-              const isActive = location.pathname.startsWith('/superadmin') && item.path === '/superadmin';
-              return (
-                <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
-                  <ListItemButton
-                    onClick={() => handleNavigate(item.path)}
-                    sx={{
-                      borderRadius: '10px', py: 1.2, px: (!isMobile && !desktopOpen) ? 0 : 2,
-                      justifyContent: (!isMobile && !desktopOpen) ? 'center' : 'flex-start',
-                      backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
-                      '&:hover': {
-                        backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
-                      },
-                      transition: 'all 0.2s ease',
-                    }}
-                  >
-                    <ListItemIcon sx={{ color: isActive ? sidebarConfig.accent : 'rgba(255,255,255,0.6)', minWidth: (!isMobile && !desktopOpen) ? 0 : 40, justifyContent: 'center' }}>
-                      {item.icon}
-                    </ListItemIcon>
-                    {(!isMobile ? desktopOpen : true) && (
-                      <ListItemText
-                        primary={item.label}
-                        primaryTypographyProps={{
-                          fontWeight: isActive ? 700 : 500, fontSize: '0.875rem',
-                          color: isActive ? '#FFFFFF' : 'rgba(255,255,255,0.8)',
-                        }}
-                      />
-                    )}
-                    {isActive && (!isMobile ? desktopOpen : true) && (
-                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: sidebarConfig.accent }} />
-                    )}
-                  </ListItemButton>
-                </ListItem>
-              );
-            })}
-          </List>
-        </>
-      )}
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', mx: 2 }} />
 
