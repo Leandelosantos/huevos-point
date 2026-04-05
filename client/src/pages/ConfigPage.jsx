@@ -14,12 +14,15 @@ import {
   DialogContent,
   DialogActions,
   Stack,
+  MenuItem,
 } from '@mui/material';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import PaletteRoundedIcon from '@mui/icons-material/PaletteRounded';
 import StoreRoundedIcon from '@mui/icons-material/StoreRounded';
 import AddBusinessRoundedIcon from '@mui/icons-material/AddBusinessRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import DeleteForeverRoundedIcon from '@mui/icons-material/DeleteForeverRounded';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import { useAppTheme } from '../context/ThemeContext';
@@ -91,7 +94,7 @@ const ThemeCard = ({ config, selected, onClick }) => (
 // ─── Sección principal ──────────────────────────────────────────────────────
 
 const ConfigPage = () => {
-  const { activeTenant, isAdmin, isSuperAdmin, updateActiveTenant, addTenantToUser } = useAuth();
+  const { user, activeTenant, isAdmin, isSuperAdmin, updateActiveTenant, addTenantToUser, removeTenantFromUser, switchTenant } = useAuth();
   const { themeId, applyTheme } = useAppTheme();
 
   const [savingTheme, setSavingTheme] = useState(false);
@@ -114,6 +117,12 @@ const ConfigPage = () => {
   } = useForm();
 
   const [newBranchOpen, setNewBranchOpen] = useState(false);
+  const [deleteBranchOpen, setDeleteBranchOpen] = useState(false);
+  const [tenantToDelete, setTenantToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Sucursales disponibles para el selector de eliminación (excluye la activa)
+  const deletableTenants = (user?.tenants || []).filter((t) => t.id !== activeTenant?.id);
 
   useEffect(() => {
     if (activeTenant?.name) {
@@ -166,6 +175,22 @@ const ConfigPage = () => {
       setNewBranchOpen(false);
     } catch (err) {
       showErrorToast(err.response?.data?.message || 'No se pudo crear la sucursal');
+    }
+  };
+
+  const handleDeleteBranch = async () => {
+    if (!tenantToDelete) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/tenants/${tenantToDelete.id}`);
+      removeTenantFromUser(tenantToDelete.id);
+      showSuccessToast(`Sucursal "${tenantToDelete.name}" eliminada`);
+      setDeleteBranchOpen(false);
+      setTenantToDelete(null);
+    } catch (err) {
+      showErrorToast(err.response?.data?.message || 'No se pudo eliminar la sucursal');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -278,6 +303,85 @@ const ConfigPage = () => {
           </Button>
         </Paper>
       )}
+
+      {/* ── Eliminar sucursal ────────────────────────────────── */}
+      {(isAdmin || isSuperAdmin) && (
+        <Paper sx={{ p: 3, mt: 3, border: '1px solid', borderColor: 'error.light' }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+            <DeleteForeverRoundedIcon color="error" />
+            <Typography variant="h6" fontWeight={700} color="error.main">
+              Eliminar sucursal
+            </Typography>
+          </Stack>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Seleccioná una sucursal para eliminarla. No podés eliminar la sucursal en la que estás activo actualmente.
+          </Typography>
+
+          {deletableTenants.length === 0 ? (
+            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+              No hay otras sucursales disponibles para eliminar.
+            </Typography>
+          ) : (
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
+              <TextField
+                select
+                label="Sucursal a eliminar"
+                size="small"
+                sx={{ minWidth: 280 }}
+                value={tenantToDelete?.id || ''}
+                onChange={(e) => {
+                  const found = deletableTenants.find((t) => t.id === Number(e.target.value));
+                  setTenantToDelete(found || null);
+                }}
+              >
+                {deletableTenants.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
+                ))}
+              </TextField>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<DeleteForeverRoundedIcon />}
+                disabled={!tenantToDelete}
+                onClick={() => setDeleteBranchOpen(true)}
+              >
+                Eliminar
+              </Button>
+            </Stack>
+          )}
+        </Paper>
+      )}
+
+      {/* ── Dialog confirmar eliminación ──────────────────────── */}
+      <Dialog open={deleteBranchOpen} onClose={() => !deleting && setDeleteBranchOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <WarningAmberRoundedIcon color="error" />
+          Confirmar eliminación
+        </DialogTitle>
+        <Divider />
+        <DialogContent>
+          <Typography variant="body1" sx={{ mb: 1.5 }}>
+            Estás por eliminar la sucursal <strong>"{tenantToDelete?.name}"</strong>.
+          </Typography>
+          <Typography variant="body2" color="error.main" fontWeight={600}>
+            Esta acción es irreversible. Se perderán todos los datos asociados a esta sucursal (ventas, egresos, stock, compras y auditoría).
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteBranchOpen(false)} color="inherit" disabled={deleting}>
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteBranch}
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteForeverRoundedIcon />}
+          >
+            {deleting ? 'Eliminando...' : 'Sí, eliminar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ── Dialog nueva sucursal ─────────────────────────────── */}
       <Dialog open={newBranchOpen} onClose={() => setNewBranchOpen(false)} maxWidth="xs" fullWidth>

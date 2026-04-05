@@ -13,7 +13,8 @@ router.put('/current', requireRole('admin', 'superadmin'), tenantsController.upd
 
 // Listado: solo superadmin
 router.get('/', requireRole('superadmin'), tenantsController.getAll);
-// Creación: admin y superadmin
+// Creación y eliminación: admin y superadmin
 router.post('/', requireRole('admin', 'superadmin'), tenantsController.createTenant);
+router.delete('/:id', requireRole('admin', 'superadmin'), tenantsController.deleteTenant);
 
 module.exports = router;

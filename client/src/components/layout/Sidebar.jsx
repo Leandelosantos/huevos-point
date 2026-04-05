@@ -321,7 +321,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
         </Box>
 
         {/* M:N Menu Cambio de Sucursal */}
-        {(isSuperAdmin || (user?.tenants?.length ?? 0) > 1) && (
+        {(isSuperAdmin || isAdmin || (user?.tenants?.length ?? 0) > 0) && (
           <Box sx={{ p: 1, pt: 0 }}>
             {(!isMobile ? desktopOpen : true) && (
               <Button

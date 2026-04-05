@@ -40,4 +40,13 @@ const createTenant = async (req, res, next) => {
   }
 };
 
-module.exports = { getAll, getCurrent, updateCurrent, createTenant };
+const deleteTenant = async (req, res, next) => {
+  try {
+    await tenantsService.deleteTenant(req.params.id, req.tenantId);
+    res.json({ success: true, message: 'Sucursal eliminada correctamente' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getAll, getCurrent, updateCurrent, createTenant, deleteTenant };

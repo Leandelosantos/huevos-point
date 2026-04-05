@@ -35,4 +35,13 @@ const createTenant = async ({ name, userId }) => {
   return tenant;
 };
 
-module.exports = { getAllActiveTenants, getCurrentTenant, updateCurrentTenant, createTenant };
+const deleteTenant = async (id, requestingTenantId) => {
+  if (parseInt(id) === parseInt(requestingTenantId)) {
+    throw new AppError('No podés eliminar la sucursal en la que estás activo', 400);
+  }
+  const tenant = await tenantsRepository.findById(id);
+  if (!tenant) throw new AppError('Sucursal no encontrada', 404);
+  await tenantsRepository.deleteById(id);
+};
+
+module.exports = { getAllActiveTenants, getCurrentTenant, updateCurrentTenant, createTenant, deleteTenant };
