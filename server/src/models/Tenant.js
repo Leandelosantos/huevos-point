@@ -27,6 +27,11 @@ const Tenant = sequelize.define('Tenant', {
     allowNull: true,
     unique: true,
   },
+  businessId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    field: 'business_id',
+  },
   theme: {
     type: DataTypes.STRING(30),
     defaultValue: 'verde-bosque',
