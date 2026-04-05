@@ -11,8 +11,9 @@ router.use(authMiddleware);
 router.get('/current', requireRole('admin', 'superadmin'), tenantsController.getCurrent);
 router.put('/current', requireRole('admin', 'superadmin'), tenantsController.updateCurrent);
 
-// Listado y creación: solo superadmin
+// Listado: solo superadmin
 router.get('/', requireRole('superadmin'), tenantsController.getAll);
-router.post('/', requireRole('superadmin'), tenantsController.createTenant);
+// Creación: admin y superadmin
+router.post('/', requireRole('admin', 'superadmin'), tenantsController.createTenant);
 
 module.exports = router;

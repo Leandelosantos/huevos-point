@@ -91,7 +91,7 @@ const ThemeCard = ({ config, selected, onClick }) => (
 // ─── Sección principal ──────────────────────────────────────────────────────
 
 const ConfigPage = () => {
-  const { activeTenant, isSuperAdmin, updateActiveTenant } = useAuth();
+  const { activeTenant, isAdmin, isSuperAdmin, updateActiveTenant } = useAuth();
   const { themeId, applyTheme } = useAppTheme();
 
   const [savingTheme, setSavingTheme] = useState(false);
@@ -253,7 +253,7 @@ const ConfigPage = () => {
       </Paper>
 
       {/* ── Nueva sucursal (solo superadmin) ─────────────────── */}
-      {isSuperAdmin && (
+      {(isAdmin || isSuperAdmin) && (
         <Paper sx={{ p: 3 }}>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
             <AddBusinessRoundedIcon color="primary" />
