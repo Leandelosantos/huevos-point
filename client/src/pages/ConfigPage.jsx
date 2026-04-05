@@ -91,7 +91,7 @@ const ThemeCard = ({ config, selected, onClick }) => (
 // ─── Sección principal ──────────────────────────────────────────────────────
 
 const ConfigPage = () => {
-  const { activeTenant, isAdmin, isSuperAdmin, updateActiveTenant } = useAuth();
+  const { activeTenant, isAdmin, isSuperAdmin, updateActiveTenant, addTenantToUser } = useAuth();
   const { themeId, applyTheme } = useAppTheme();
 
   const [savingTheme, setSavingTheme] = useState(false);
@@ -156,7 +156,11 @@ const ConfigPage = () => {
 
   const handleCreateBranch = async (values) => {
     try {
-      await api.post('/tenants', { name: values.name });
+      const { data } = await api.post('/tenants', { name: values.name });
+      // Si el admin fue auto-asignado, agregar la sucursal a la sesión
+      if (!isSuperAdmin && data.data) {
+        addTenantToUser({ id: data.data.id, name: data.data.name });
+      }
       showSuccessToast(`Sucursal "${values.name}" creada correctamente`);
       resetNew();
       setNewBranchOpen(false);

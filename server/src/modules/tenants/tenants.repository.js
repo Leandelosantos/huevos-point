@@ -23,4 +23,10 @@ const create = async (fields) => {
   return Tenant.create(fields);
 };
 
-module.exports = { findAllActive, findById, updateById, create };
+const addUserToTenant = async (tenantId, userId) => {
+  const { User } = require('../../models');
+  const user = await User.findByPk(userId);
+  if (user) await user.addTenant(tenantId);
+};
+
+module.exports = { findAllActive, findById, updateById, create, addUserToTenant };

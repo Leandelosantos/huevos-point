@@ -104,7 +104,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
           { label: 'Métricas', icon: <BarChartRoundedIcon />, path: '/metrics' },
         ]
       : []),
-    ...(isSuperAdmin
+    ...(isAdmin || isSuperAdmin
       ? [
           { label: 'Usuarios', icon: <PeopleRoundedIcon />, path: '/users' },
         ]

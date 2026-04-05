@@ -76,6 +76,17 @@ export const AuthProvider = ({ children }) => {
     setActiveTenant(tenant);
   }, []);
 
+  const addTenantToUser = useCallback((tenant) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const already = prev.tenants?.some((t) => t.id === tenant.id);
+      if (already) return prev;
+      const updated = { ...prev, tenants: [...(prev.tenants || []), tenant] };
+      sessionStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   const updateActiveTenant = useCallback((fields) => {
     setActiveTenant((prev) => {
       if (!prev) return prev;
@@ -97,7 +108,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     switchTenant,
     updateActiveTenant,
-  }), [user, loading, isAuthenticated, isAdmin, isSuperAdmin, isDemo, activeTenant, login, logout, switchTenant, updateActiveTenant]);
+    addTenantToUser,
+  }), [user, loading, isAuthenticated, isAdmin, isSuperAdmin, isDemo, activeTenant, login, logout, switchTenant, updateActiveTenant, addTenantToUser]);
 
   return (
     <AuthContext.Provider value={value}>

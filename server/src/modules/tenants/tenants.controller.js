@@ -31,7 +31,9 @@ const updateCurrent = async (req, res, next) => {
 const createTenant = async (req, res, next) => {
   try {
     const { name } = req.body;
-    const tenant = await tenantsService.createTenant({ name });
+    // Los admins (no superadmin) quedan auto-asignados a la nueva sucursal
+    const userId = req.user.role !== 'superadmin' ? req.user.id : null;
+    const tenant = await tenantsService.createTenant({ name, userId });
     res.status(201).json({ success: true, data: tenant, message: 'Sucursal creada correctamente' });
   } catch (error) {
     next(error);

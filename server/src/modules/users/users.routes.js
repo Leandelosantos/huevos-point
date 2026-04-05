@@ -5,14 +5,13 @@ const { requireRole } = require('../../middlewares/roleMiddleware');
 
 const router = Router();
 
-// Todas las rutas de usuarios están estrictamente limitadas al Super Administrador
 router.use(authMiddleware);
-router.use(requireRole('superadmin'));
 
-router.get('/', usersController.getAll);
-router.get('/:id', usersController.getById);
-router.post('/', usersController.create);
-router.put('/:id', usersController.update);
-router.delete('/:id', usersController.deactivate);
+// Admin puede ver y gestionar usuarios de su propia sucursal
+router.get('/', requireRole('admin', 'superadmin'), usersController.getAll);
+router.get('/:id', requireRole('admin', 'superadmin'), usersController.getById);
+router.post('/', requireRole('admin', 'superadmin'), usersController.create);
+router.put('/:id', requireRole('admin', 'superadmin'), usersController.update);
+router.delete('/:id', requireRole('admin', 'superadmin'), usersController.deactivate);
 
 module.exports = router;

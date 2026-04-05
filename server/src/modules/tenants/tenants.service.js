@@ -25,9 +25,14 @@ const updateCurrentTenant = async (tenantId, { name, theme }) => {
   return updated;
 };
 
-const createTenant = async ({ name }) => {
+const createTenant = async ({ name, userId }) => {
   if (!name || !name.trim()) throw new AppError('El nombre es requerido', 400);
-  return tenantsRepository.create({ name: name.trim() });
+  const tenant = await tenantsRepository.create({ name: name.trim() });
+  // Si se provee un userId (admin que crea la sucursal), asignarlo automáticamente
+  if (userId) {
+    await tenantsRepository.addUserToTenant(tenant.id, userId);
+  }
+  return tenant;
 };
 
 module.exports = { getAllActiveTenants, getCurrentTenant, updateCurrentTenant, createTenant };

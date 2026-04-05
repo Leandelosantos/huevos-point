@@ -1,9 +1,17 @@
 const { User, Tenant } = require('../../models');
 
-const findAll = async () => {
+const findAll = async (tenantId = null) => {
+  const include = [{
+    model: Tenant,
+    as: 'tenants',
+    attributes: ['id', 'name'],
+    through: { attributes: [] },
+    ...(tenantId ? { where: { id: tenantId } } : {}),
+  }];
+
   return User.findAll({
     attributes: { exclude: ['password'] },
-    include: [{ model: Tenant, as: 'tenants', attributes: ['id', 'name'], through: { attributes: [] } }],
+    include,
     order: [['createdAt', 'DESC']],
   });
 };

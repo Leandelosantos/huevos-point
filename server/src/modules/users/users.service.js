@@ -1,8 +1,8 @@
 const usersRepository = require('./users.repository');
 const AppError = require('../../utils/AppError');
 
-const getAllUsers = async () => {
-  return usersRepository.findAll();
+const getAllUsers = async (tenantId = null) => {
+  return usersRepository.findAll(tenantId);
 };
 
 const getUserById = async (id) => {

@@ -2,7 +2,9 @@ const usersService = require('./users.service');
 
 const getAll = async (req, res, next) => {
   try {
-    const users = await usersService.getAllUsers();
+    // Superadmin ve todos; admin solo ve los de su tenant
+    const tenantId = req.user.role !== 'superadmin' ? req.tenantId : null;
+    const users = await usersService.getAllUsers(tenantId);
     res.json({ success: true, data: users });
   } catch (error) {
     next(error);
