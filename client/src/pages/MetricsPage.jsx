@@ -22,7 +22,7 @@ import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
 import TrendingDownRoundedIcon from '@mui/icons-material/TrendingDownRounded';
 import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceWalletRounded';
 import { showErrorToast } from '../utils/sweetAlert';
-import { CURRENCY_FORMAT } from '../utils/formatters';
+import { useCurrency } from '../context/CurrencyContext';
 
 
 // Paleta de colores armoniosa para los productos
@@ -211,6 +211,7 @@ const monthLabel = (ym) => {
 };
 
 const MonthlyBalanceCard = () => {
+  const { formatAmount } = useCurrency();
   const [selectedYM, setSelectedYM] = useState(todayYM);
   const [balance, setBalance] = useState(null);
   const [loadingBalance, setLoadingBalance] = useState(true);
@@ -278,7 +279,7 @@ const MonthlyBalanceCard = () => {
                   </Typography>
                 </Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: 'success.dark' }}>
-                  {CURRENCY_FORMAT.format(balance.totalIncome)}
+                  {formatAmount(balance.totalIncome)}
                 </Typography>
               </Box>
             </Grid>
@@ -291,7 +292,7 @@ const MonthlyBalanceCard = () => {
                   </Typography>
                 </Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: 'error.dark' }}>
-                  {CURRENCY_FORMAT.format(balance.totalExpenses)}
+                  {formatAmount(balance.totalExpenses)}
                 </Typography>
               </Box>
             </Grid>
@@ -308,7 +309,7 @@ const MonthlyBalanceCard = () => {
                   </Typography>
                 </Box>
                 <Typography variant="h5" sx={{ fontWeight: 800, color: balance.netBalance >= 0 ? 'primary.dark' : 'error.dark' }}>
-                  {CURRENCY_FORMAT.format(balance.netBalance)}
+                  {formatAmount(balance.netBalance)}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.disabled', fontStyle: 'italic' }}>
                   {label}

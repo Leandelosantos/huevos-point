@@ -9,6 +9,7 @@ const Purchase = require('./Purchase');
 const SubscriptionPlan = require('./SubscriptionPlan');
 const Subscription = require('./Subscription');
 const SuperadminAuditLog = require('./SuperadminAuditLog');
+const ApiKey = require('./ApiKey');
 
 // Tenant Associations
 Tenant.belongsToMany(User, { through: { model: 'user_tenants', timestamps: false }, foreignKey: 'tenant_id', otherKey: 'user_id', as: 'users' });
@@ -58,6 +59,9 @@ Subscription.belongsTo(SubscriptionPlan, { foreignKey: 'planId', as: 'plan' });
 // SuperadminAuditLog associations
 SuperadminAuditLog.belongsTo(Tenant, { foreignKey: 'targetTenant', as: 'tenant' });
 
+// ApiKey associations
+ApiKey.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+
 module.exports = {
   Tenant,
   User,
@@ -70,4 +74,5 @@ module.exports = {
   SubscriptionPlan,
   Subscription,
   SuperadminAuditLog,
+  ApiKey,
 };

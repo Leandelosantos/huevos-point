@@ -26,11 +26,13 @@ import AddShoppingCartRoundedIcon from '@mui/icons-material/AddShoppingCartRound
 import RemoveShoppingCartRoundedIcon from '@mui/icons-material/RemoveShoppingCartRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
+import CurrencyExchangeRoundedIcon from '@mui/icons-material/CurrencyExchangeRounded';
 import dayjs from 'dayjs';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 import SaleModal from '../components/sales/SaleModal';
 import ExpenseModal from '../components/expenses/ExpenseModal';
 import { showErrorAlert, showErrorToast, showSuccessToast } from '../utils/sweetAlert';
@@ -38,6 +40,7 @@ import { CURRENCY_FORMAT } from '../utils/formatters';
 
 const DashboardPage = () => {
   const { isAdmin, activeTenant } = useAuth();
+  const { currency, rate, rateLoading, toggleCurrency, formatAmount } = useCurrency();
   const [summary, setSummary] = useState(null);
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -202,6 +205,31 @@ const DashboardPage = () => {
             inputProps={{ max: dayjs().format('YYYY-MM-DD') }}
             sx={{ width: { xs: '100%', sm: 180 }, bgcolor: 'background.paper', mb: { xs: 1, sm: 0 } }}
           />
+          <Tooltip
+            title={
+              currency === 'USD' && rate
+                ? `Cotización: $${rate.toFixed(2)} ARS (dólar oficial venta). Clic para volver a pesos.`
+                : 'Ver importes en dólares (dólar oficial)'
+            }
+          >
+            <span>
+              <Button
+                variant={currency === 'USD' ? 'contained' : 'outlined'}
+                startIcon={<CurrencyExchangeRoundedIcon />}
+                onClick={toggleCurrency}
+                disabled={rateLoading || !rate}
+                size="small"
+                sx={{
+                  fontWeight: 700,
+                  ...(currency === 'USD'
+                    ? { bgcolor: '#1565C0', '&:hover': { bgcolor: '#0D47A1' } }
+                    : { color: '#1565C0', borderColor: '#1565C0' }),
+                }}
+              >
+                {rateLoading ? 'Cargando...' : currency === 'USD' ? 'USD' : 'ARS'}
+              </Button>
+            </span>
+          </Tooltip>
           {isAdmin && (
             <Button
               variant="outlined"
@@ -260,7 +288,7 @@ const DashboardPage = () => {
                           fontSize: { xs: '1.5rem', sm: '1.75rem' },
                         }}
                       >
-                        {CURRENCY_FORMAT.format(card.value)}
+                        {formatAmount(card.value)}
                       </Typography>
                     )}
                   </Box>
@@ -325,7 +353,7 @@ const DashboardPage = () => {
                   {method}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 800, color: '#2D6A4F' }}>
-                  {CURRENCY_FORMAT.format(total)}
+                  {formatAmount(total)}
                 </Typography>
               </Box>
             ))}
@@ -499,7 +527,7 @@ const DashboardPage = () => {
                                     {s.method}
                                   </Typography>
                                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    {CURRENCY_FORMAT.format(s.amount)}
+                                    {formatAmount(s.amount)}
                                   </Typography>
                                 </Box>
                               ))}
@@ -512,7 +540,7 @@ const DashboardPage = () => {
                         </TableCell>
                         <TableCell align="right">
                           <Typography variant="body2" sx={{ fontWeight: 600, color: mov.discountAmount > 0 ? '#C62828' : 'text.disabled' }}>
-                            {mov.discountAmount > 0 ? `-${CURRENCY_FORMAT.format(mov.discountAmount)}` : '—'}
+                            {mov.discountAmount > 0 ? `-${formatAmount(mov.discountAmount)}` : '—'}
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
@@ -524,7 +552,7 @@ const DashboardPage = () => {
                             }}
                           >
                             {mov.type === 'VENTA' ? '+' : '-'}
-                            {CURRENCY_FORMAT.format(mov.amount)}
+                            {formatAmount(mov.amount)}
                           </Typography>
                         </TableCell>
                       </TableRow>

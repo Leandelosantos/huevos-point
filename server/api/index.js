@@ -63,6 +63,45 @@ const migrationPromise = (async () => {
       console.log('[migration] payment_splits added to sales');
     }
 
+    // api_keys + api_key_usage tables for the public read-only API
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS api_keys (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(120) NOT NULL,
+        key_prefix VARCHAR(12) NOT NULL,
+        key_hash VARCHAR(255) NOT NULL UNIQUE,
+        business_id INTEGER REFERENCES businesses(id) ON DELETE CASCADE,
+        tenant_id INTEGER REFERENCES tenants(id) ON DELETE CASCADE,
+        scopes TEXT[] NOT NULL DEFAULT ARRAY['read:all']::TEXT[],
+        is_active BOOLEAN NOT NULL DEFAULT true,
+        rate_limit_per_min INTEGER NOT NULL DEFAULT 60,
+        last_used_at TIMESTAMPTZ,
+        expires_at TIMESTAMPTZ,
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        CONSTRAINT api_keys_scope_check CHECK (business_id IS NOT NULL OR tenant_id IS NOT NULL)
+      )
+    `);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS api_keys_key_hash_idx ON api_keys (key_hash)`);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS api_keys_business_idx ON api_keys (business_id) WHERE is_active = true`);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS api_keys_tenant_idx ON api_keys (tenant_id) WHERE is_active = true`);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS api_keys_prefix_idx ON api_keys (key_prefix)`);
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS api_key_usage (
+        id BIGSERIAL PRIMARY KEY,
+        api_key_id INTEGER NOT NULL REFERENCES api_keys(id) ON DELETE CASCADE,
+        endpoint VARCHAR(200) NOT NULL,
+        method VARCHAR(10) NOT NULL,
+        status_code INTEGER NOT NULL,
+        ip_address INET,
+        response_time_ms INTEGER,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS api_key_usage_key_created_idx ON api_key_usage (api_key_id, created_at DESC)`);
+    console.log('[migration] api_keys + api_key_usage ensured');
+
     // Performance indexes — composite indexes for multi-tenant filtered queries
     await sequelize.query(`CREATE INDEX IF NOT EXISTS sales_tenant_date_idx ON sales (tenant_id, sale_date)`);
     await sequelize.query(`CREATE INDEX IF NOT EXISTS expenses_tenant_date_idx ON expenses (tenant_id, expense_date)`);
