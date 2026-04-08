@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Box, CircularProgress, Typography, Alert } from '@mui/material';
-import api from '../services/api';
+import axios from 'axios';
 
 /**
  * Punto de entrada para el auto-login cross-app desde Dashboard Maestro.
@@ -26,7 +26,10 @@ const AutoLoginPage = () => {
 
     const doAutoLogin = async () => {
       try {
-        const { data } = await api.post('/auth/auto-login', { token });
+        // Usamos axios directo (sin el interceptor global) para que un 401
+        // no redirija al login antes de que podamos mostrar el error
+        const base = import.meta.env.VITE_API_URL || '/api';
+        const { data } = await axios.post(`${base}/auth/auto-login`, { token });
         const { token: validatedToken, user } = data.data;
 
         sessionStorage.setItem('token', validatedToken);
