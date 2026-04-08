@@ -13,5 +13,6 @@ router.get('/:id', requireRole('admin', 'superadmin'), usersController.getById);
 router.post('/', requireRole('admin', 'superadmin'), usersController.create);
 router.put('/:id', requireRole('admin', 'superadmin'), usersController.update);
 router.delete('/:id', requireRole('admin', 'superadmin'), usersController.deactivate);
+router.patch('/:id/reactivate', requireRole('admin', 'superadmin'), usersController.reactivate);
 
 module.exports = router;

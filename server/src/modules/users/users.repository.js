@@ -60,6 +60,12 @@ const deactivate = async (id) => {
   return user.update({ isActive: false });
 };
 
+const reactivate = async (id) => {
+  const user = await User.findByPk(id);
+  if (!user) return null;
+  return user.update({ isActive: true });
+};
+
 module.exports = {
   findAll,
   findById,
@@ -68,4 +74,5 @@ module.exports = {
   create,
   update,
   deactivate,
+  reactivate,
 };

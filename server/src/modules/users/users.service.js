@@ -80,10 +80,19 @@ const deactivateUser = async (id) => {
   return true;
 };
 
+const reactivateUser = async (id) => {
+  const user = await usersRepository.reactivate(id);
+  if (!user) {
+    throw new AppError('Usuario no encontrado', 404);
+  }
+  return true;
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
   createUser,
   updateUser,
   deactivateUser,
+  reactivateUser,
 };

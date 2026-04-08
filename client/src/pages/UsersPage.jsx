@@ -9,6 +9,7 @@ import {
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import BlockRoundedIcon from '@mui/icons-material/BlockRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import CheckCircleOutlineRoundedIcon from '@mui/icons-material/CheckCircleOutlineRounded';
 import { useForm, Controller } from 'react-hook-form';
 import api from '../services/api';
 import { showErrorAlert, showSuccessToast, showConfirmation } from '../utils/sweetAlert';
@@ -108,6 +109,24 @@ const UsersPage = () => {
     }
   };
 
+  const handleReactivate = async (id) => {
+    const isConfirmed = await showConfirmation(
+      '¿Reactivar Usuario?',
+      'El usuario podrá volver a acceder al sistema.',
+      'Sí, reactivar'
+    );
+
+    if (isConfirmed) {
+      try {
+        await api.patch(`/users/${id}/reactivate`);
+        showSuccessToast('Usuario reactivado');
+        fetchUsers();
+      } catch (error) {
+        showErrorAlert('Error', error.response?.data?.message || 'Error al reactivar');
+      }
+    }
+  };
+
   const handleDeactivate = async (id) => {
     const isConfirmed = await showConfirmation(
       '¿Desactivar Usuario?',
@@ -203,9 +222,15 @@ const UsersPage = () => {
                   <IconButton color="primary" onClick={() => handleOpenModal(user)} disabled={!user.isActive}>
                     <EditRoundedIcon fontSize="small" />
                   </IconButton>
-                  <IconButton color="error" onClick={() => handleDeactivate(user.id)} disabled={!user.isActive}>
-                    <BlockRoundedIcon fontSize="small" />
-                  </IconButton>
+                  {user.isActive ? (
+                    <IconButton color="error" onClick={() => handleDeactivate(user.id)}>
+                      <BlockRoundedIcon fontSize="small" />
+                    </IconButton>
+                  ) : (
+                    <IconButton color="success" onClick={() => handleReactivate(user.id)}>
+                      <CheckCircleOutlineRoundedIcon fontSize="small" />
+                    </IconButton>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

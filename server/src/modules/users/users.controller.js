@@ -47,10 +47,20 @@ const deactivate = async (req, res, next) => {
   }
 };
 
+const reactivate = async (req, res, next) => {
+  try {
+    await usersService.reactivateUser(req.params.id);
+    res.json({ success: true, message: 'Usuario reactivado exitosamente' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAll,
   getById,
   create,
   update,
   deactivate,
+  reactivate,
 };
