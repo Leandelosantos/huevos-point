@@ -7,5 +7,6 @@ const router = Router();
 
 router.post('/login', validateLogin, authController.login);
 router.post('/logout', authMiddleware, authController.logout);
+router.post('/auto-login', authController.autoLogin);
 
 module.exports = router;

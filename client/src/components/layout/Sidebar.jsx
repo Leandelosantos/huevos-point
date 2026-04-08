@@ -30,6 +30,7 @@ import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import VpnKeyRoundedIcon from '@mui/icons-material/VpnKeyRounded';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTheme } from '../../context/ThemeContext';
 import { THEMES, DEFAULT_THEME_ID } from '../../theme/themes';
@@ -110,6 +111,11 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
     ...(isAdmin || isSuperAdmin
       ? [
           { label: 'Configuración', icon: <SettingsRoundedIcon />, path: '/config' },
+        ]
+      : []),
+    ...(isSuperAdmin
+      ? [
+          { label: 'API Keys', icon: <VpnKeyRoundedIcon />, path: '/superadmin/api-keys' },
         ]
       : []),
   ];

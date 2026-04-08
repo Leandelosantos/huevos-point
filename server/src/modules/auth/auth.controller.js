@@ -47,4 +47,14 @@ const logout = async (req, res, next) => {
   }
 };
 
-module.exports = { login, logout };
+const autoLogin = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    const result = authService.autoLogin(token);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { login, logout, autoLogin };

@@ -18,6 +18,8 @@ import PurchasesPage from './pages/PurchasesPage';
 import SuperadminDashboardPage from './pages/SuperadminDashboardPage';
 import SuperadminTenantDetailPage from './pages/SuperadminTenantDetailPage';
 import ConfigPage from './pages/ConfigPage';
+import AutoLoginPage from './pages/AutoLoginPage';
+import ApiKeysPage from './pages/ApiKeysPage';
 
 // Sincroniza el tema del tenant activo con el ThemeContext
 const ThemeSyncer = () => {
@@ -42,6 +44,7 @@ const App = () => {
             <Routes>
             {/* Public */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/auto-login" element={<AutoLoginPage />} />
 
             {/* Protected layout */}
             <Route
@@ -105,6 +108,14 @@ const App = () => {
                 element={
                   <ProtectedRoute requiredRole="superadmin">
                     <SuperadminDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/superadmin/api-keys"
+                element={
+                  <ProtectedRoute requiredRole="superadmin">
+                    <ApiKeysPage />
                   </ProtectedRoute>
                 }
               />
