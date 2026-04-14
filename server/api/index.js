@@ -16,17 +16,6 @@ const migrationPromise = (async () => {
       console.log('[migration] discount_concept added to sale_items');
     }
 
-    const [orphans] = await sequelize.query(`
-      SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'sales' AND column_name IN ('status', 'mp_preference_id')
-    `);
-    if (orphans.length > 0) {
-      await sequelize.query('ALTER TABLE sales DROP COLUMN IF EXISTS status');
-      await sequelize.query('ALTER TABLE sales DROP COLUMN IF EXISTS mp_preference_id');
-      await sequelize.query('DROP TYPE IF EXISTS enum_sales_status');
-      console.log('[migration] orphan columns removed from sales');
-    }
-
     // Add receipt columns to purchases if missing
     const [receiptCol] = await sequelize.query(`
       SELECT column_name FROM information_schema.columns

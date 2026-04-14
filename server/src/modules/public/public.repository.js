@@ -66,7 +66,7 @@ const findSales = async ({ businessId, tenantId, from, to, limit, offset }) => {
   }
   return Sale.findAndCountAll({
     where,
-    attributes: ['id', 'tenantId', 'userId', 'totalAmount', 'paymentMethod', 'paymentSplits', 'saleDate', 'source', 'createdAt'],
+    attributes: ['id', 'tenantId', 'userId', 'totalAmount', 'paymentMethod', 'paymentSplits', 'saleDate', 'createdAt'],
     include: [
       {
         model: SaleItem,

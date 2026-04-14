@@ -87,6 +87,26 @@ cd server && npm test
 
 Cualquier endpoint nuevo en `/api/public/v1` debe sumar tests al suite existente (`apiKeyMiddleware.test.js`, `apiKeys.service.test.js`, `public.service.test.js`).
 
+## Modo de Operación
+
+### Tareas simples → implementar directo
+- Agregar campo a modelo existente
+- Nuevo endpoint que sigue el patrón Controller → Service → Repository ya establecido
+- Fix de bug localizado en un solo módulo
+- Ajuste de UI en un componente existente
+
+### Tareas que requieren plan en todo.md → esperar confirmación antes de implementar
+- Nuevas tablas o cambios de schema/migraciones
+- Nuevos módulos completos
+- Cambios que tocan auth, middlewares o seguridad
+- Cualquier cambio que afecte /api/public/v1 o el modelo multi-tenant
+- Cambios que tocan más de 2 módulos simultáneamente
+
+### lessons.md
+- Actualizar después de cada corrección del usuario
+- Máximo 20 entradas — si supera, consolidar patrones similares
+- Revisar al inicio de cada sesión
+
 ## Referencias rápidas
 
 - API pública: [docs/public-api.md](docs/public-api.md)

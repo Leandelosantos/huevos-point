@@ -28,7 +28,9 @@ const ApiKey = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'business_id',
-      references: { model: 'businesses', key: 'id' },
+      // FK real hacia businesses existe en Supabase (creada por Dashboard Maestro).
+      // No se declara aquí para evitar que Sequelize sync falle en entornos locales
+      // donde la tabla businesses no existe.
     },
     tenantId: {
       type: DataTypes.INTEGER,
