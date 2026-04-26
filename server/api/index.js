@@ -100,6 +100,107 @@ const migrationPromise = (async () => {
     await sequelize.query(`CREATE INDEX IF NOT EXISTS products_tenant_active_idx ON products (tenant_id, is_active)`);
     await sequelize.query(`CREATE INDEX IF NOT EXISTS purchases_tenant_date_idx ON purchases (tenant_id, purchase_date)`);
     console.log('[migration] performance indexes ensured');
+
+    // ── Fase 3: Suscripciones + Onboarding ──────────────────────────────────
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS subscription_plans (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(50) NOT NULL,
+        display_name VARCHAR(100) NOT NULL,
+        description TEXT,
+        price_monthly DECIMAL(12,2) NOT NULL,
+        price_yearly DECIMAL(12,2) NOT NULL,
+        max_branches INT NOT NULL DEFAULT 1,
+        max_users INT NOT NULL DEFAULT 3,
+        features JSONB NOT NULL DEFAULT '{}',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT now(),
+        updated_at TIMESTAMPTZ DEFAULT now()
+      )
+    `);
+    await sequelize.query(`
+      INSERT INTO subscription_plans (name, display_name, description, price_monthly, price_yearly, max_branches, max_users, features)
+      VALUES
+        ('basico', 'Plan Básico', 'Gestión esencial para distribuidoras pequeñas', 15000, 135000, 1, 3,
+         '{"ventas":true,"egresos":true,"stock":true,"compras_basico":true,"dashboard":true,"email_diario":true,"clientes":false,"auditoria":false,"exportacion_excel":false,"mp_point":false,"metricas_avanzadas":false,"descuentos_item":false}'::jsonb),
+        ('profesional', 'Plan Profesional', 'Control total para distribuidoras en crecimiento', 35000, 315000, 5, -1,
+         '{"ventas":true,"egresos":true,"stock":true,"compras_basico":true,"compras_avanzado":true,"dashboard":true,"email_diario":true,"clientes":true,"auditoria":true,"exportacion_excel":true,"mp_point":true,"metricas_avanzadas":true,"descuentos_item":true}'::jsonb),
+        ('personalizado', 'Plan Personalizado', 'Todo lo del Plan Profesional + desarrollo a medida', 0, 0, -1, -1,
+         '{"ventas":true,"egresos":true,"stock":true,"compras_basico":true,"compras_avanzado":true,"dashboard":true,"email_diario":true,"clientes":true,"auditoria":true,"exportacion_excel":true,"mp_point":true,"metricas_avanzadas":true,"descuentos_item":true,"desarrollo_a_medida":true}'::jsonb)
+      ON CONFLICT DO NOTHING
+    `);
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id SERIAL PRIMARY KEY,
+        tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        plan_id INT NOT NULL REFERENCES subscription_plans(id),
+        billing_cycle VARCHAR(10) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending',
+        payment_provider VARCHAR(20) NOT NULL,
+        mobbex_subscription_uid VARCHAR(255),
+        mobbex_subscriber_uid VARCHAR(255),
+        mp_preapproval_id VARCHAR(255),
+        mp_payer_email VARCHAR(255),
+        current_period_start TIMESTAMPTZ,
+        current_period_end TIMESTAMPTZ,
+        trial_ends_at TIMESTAMPTZ,
+        cancelled_at TIMESTAMPTZ,
+        suspended_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT now(),
+        updated_at TIMESTAMPTZ DEFAULT now()
+      )
+    `);
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS subscription_payments (
+        id SERIAL PRIMARY KEY,
+        subscription_id INT NOT NULL REFERENCES subscriptions(id),
+        tenant_id INT NOT NULL REFERENCES tenants(id),
+        amount DECIMAL(12,2) NOT NULL,
+        currency VARCHAR(3) DEFAULT 'ARS',
+        status VARCHAR(20) NOT NULL,
+        payment_provider VARCHAR(20) NOT NULL,
+        external_payment_id VARCHAR(255),
+        provider_status VARCHAR(50),
+        provider_detail VARCHAR(100),
+        payment_date TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT now()
+      )
+    `);
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS onboarding_registrations (
+        id SERIAL PRIMARY KEY,
+        business_name VARCHAR(200) NOT NULL,
+        business_type VARCHAR(100),
+        contact_name VARCHAR(200) NOT NULL,
+        contact_email VARCHAR(255) NOT NULL UNIQUE,
+        contact_phone VARCHAR(50),
+        plan_id INT REFERENCES subscription_plans(id),
+        billing_cycle VARCHAR(10),
+        payment_provider VARCHAR(20),
+        status VARCHAR(20) DEFAULT 'pending',
+        tenant_id INT REFERENCES tenants(id),
+        user_id INT,
+        subscription_id INT REFERENCES subscriptions(id),
+        temp_password_hash VARCHAR(255),
+        created_at TIMESTAMPTZ DEFAULT now(),
+        completed_at TIMESTAMPTZ
+      )
+    `);
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS contact_requests (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(50),
+        business_name VARCHAR(200),
+        message TEXT NOT NULL,
+        plan_id INT REFERENCES subscription_plans(id),
+        status VARCHAR(20) DEFAULT 'pending',
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT now()
+      )
+    `);
+    console.log('[migration] Fase 3: subscription_plans + subscriptions + payments + onboarding ensured');
   } catch (e) {
     console.error('[migration error]', e.message);
   }
