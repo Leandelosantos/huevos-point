@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const errorMiddleware = require('./middlewares/errorMiddleware');
 const demoMiddleware = require('./middlewares/demoMiddleware');
+const subscriptionCheck = require('./middlewares/subscriptionCheck');
 
 // Register models and associations (required for Vercel serverless)
 require('./models');
@@ -23,6 +24,9 @@ const cronRoutes = require('./modules/cron/cron.routes');
 const superadminRoutes = require('./modules/superadmin/superadmin.routes');
 const publicApiRoutes = require('./modules/public/public.routes');
 const apiKeysRoutes = require('./modules/apiKeys/apiKeys.routes');
+const onboardingRoutes = require('./modules/onboarding/onboarding.routes');
+const subscriptionsRoutes = require('./modules/subscriptions/subscriptions.routes');
+const webhooksRoutes = require('./modules/webhooks/webhooks.routes');
 
 const app = express();
 
@@ -62,6 +66,14 @@ const publicApiLimiter = rateLimit({
   message: { success: false, message: 'Demasiadas solicitudes a la API pública, intente en 1 minuto' },
 });
 
+// Capturar rawBody para webhooks de MercadoPago (necesario para verificar firma HMAC)
+// Debe ir ANTES de express.json
+app.use('/api/webhooks/mercadopago-subscriptions', express.raw({ type: '*/*', limit: '1mb' }), (req, _res, next) => {
+  req.rawBody = req.body;
+  req.body = req.body.length ? JSON.parse(req.body.toString()) : {};
+  next();
+});
+
 // Body parsing (5mb to allow base64-encoded receipt images on purchases)
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
@@ -69,20 +81,29 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 // Demo mode interceptor — must run before all routes (no DB access for role=demo)
 app.use(demoMiddleware);
 
-// API Routes
+// ── Rutas públicas (sin auth) ────────────────────────────────────────────────
+app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/webhooks', webhooksRoutes);
+
+// ── Rutas protegidas con JWT ─────────────────────────────────────────────────
 app.use('/api/auth/login', loginLimiter);
 app.use('/api/auth', authRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/products', productsRoutes);
-app.use('/api/sales', salesRoutes);
-app.use('/api/expenses', expensesRoutes);
-app.use('/api/audit-logs', auditRoutes);
-app.use('/api/metrics', metricsRoutes);
-app.use('/api/users', usersRoutes);
+
+// subscriptionCheck se aplica a todas las rutas que requieren tenant activo
+app.use('/api/dashboard', subscriptionCheck, dashboardRoutes);
+app.use('/api/products', subscriptionCheck, productsRoutes);
+app.use('/api/sales', subscriptionCheck, salesRoutes);
+app.use('/api/expenses', subscriptionCheck, expensesRoutes);
+app.use('/api/audit-logs', subscriptionCheck, auditRoutes);
+app.use('/api/metrics', subscriptionCheck, metricsRoutes);
+app.use('/api/users', subscriptionCheck, usersRoutes);
 app.use('/api/tenants', tenantsRoutes);
-app.use('/api/purchases', purchasesRoutes);
+app.use('/api/purchases', subscriptionCheck, purchasesRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/superadmin', superadminRoutes);
+
+// Suscripción del tenant actual (auth requerida, subscriptionCheck no aplica aquí)
+app.use('/api/subscription', subscriptionsRoutes);
 
 // Internal admin: API key management (JWT + superadmin)
 app.use('/api/admin/api-keys', apiKeysRoutes);

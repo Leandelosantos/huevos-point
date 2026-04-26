@@ -31,6 +31,17 @@ const environment = {
   CRON_SECRET: process.env.CRON_SECRET || '',
   // Demo mode
   DEMO_PASSWORD: process.env.DEMO_PASSWORD || 'demo2025',
+  // Mobbex
+  MOBBEX_API_KEY: process.env.MOBBEX_API_KEY || '',
+  MOBBEX_ACCESS_TOKEN: process.env.MOBBEX_ACCESS_TOKEN || '',
+  // MercadoPago
+  MP_ACCESS_TOKEN: process.env.MP_ACCESS_TOKEN || '',
+  MP_WEBHOOK_SECRET: process.env.MP_WEBHOOK_SECRET || '',
+  // URLs
+  APP_LOGIN_URL: process.env.APP_LOGIN_URL || 'https://app.huevospoint.com/login',
+  LANDING_URL: process.env.LANDING_URL || 'https://huevospoint.com',
+  // Contact
+  CONTACT_EMAIL: process.env.CONTACT_EMAIL || 'leandrodelosantos@gmail.com',
 };
 
 module.exports = environment;

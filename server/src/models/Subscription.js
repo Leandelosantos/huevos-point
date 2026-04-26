@@ -66,6 +66,11 @@ const Subscription = sequelize.define(
       allowNull: true,
       field: 'current_period_end',
     },
+    trialEndsAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'trial_ends_at',
+    },
     cancelledAt: {
       type: DataTypes.DATE,
       allowNull: true,

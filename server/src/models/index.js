@@ -8,6 +8,9 @@ const AuditLog = require('./AuditLog');
 const Purchase = require('./Purchase');
 const SubscriptionPlan = require('./SubscriptionPlan');
 const Subscription = require('./Subscription');
+const SubscriptionPayment = require('./SubscriptionPayment');
+const OnboardingRegistration = require('./OnboardingRegistration');
+const ContactRequest = require('./ContactRequest');
 const SuperadminAuditLog = require('./SuperadminAuditLog');
 const ApiKey = require('./ApiKey');
 
@@ -56,6 +59,15 @@ Subscription.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
 SubscriptionPlan.hasMany(Subscription, { foreignKey: 'planId', as: 'subscriptions' });
 Subscription.belongsTo(SubscriptionPlan, { foreignKey: 'planId', as: 'plan' });
 
+Subscription.hasMany(SubscriptionPayment, { foreignKey: 'subscriptionId', as: 'payments' });
+SubscriptionPayment.belongsTo(Subscription, { foreignKey: 'subscriptionId', as: 'subscription' });
+
+Tenant.hasMany(SubscriptionPayment, { foreignKey: 'tenantId', as: 'subscriptionPayments' });
+SubscriptionPayment.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+
+Tenant.hasMany(OnboardingRegistration, { foreignKey: 'tenantId', as: 'onboardingRegistrations' });
+OnboardingRegistration.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+
 // SuperadminAuditLog associations
 SuperadminAuditLog.belongsTo(Tenant, { foreignKey: 'targetTenant', as: 'tenant' });
 
@@ -73,6 +85,9 @@ module.exports = {
   Purchase,
   SubscriptionPlan,
   Subscription,
+  SubscriptionPayment,
+  OnboardingRegistration,
+  ContactRequest,
   SuperadminAuditLog,
   ApiKey,
 };
