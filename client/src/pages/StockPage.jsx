@@ -14,9 +14,12 @@ import {
   Tooltip,
   Skeleton,
   Chip,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import InventoryRoundedIcon from '@mui/icons-material/InventoryRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import api from '../services/api';
 import ProductModal from '../components/stock/ProductModal';
 import { showErrorToast, showSuccessToast } from '../utils/sweetAlert';
@@ -27,6 +30,7 @@ const StockPage = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [search, setSearch] = useState('');
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -56,6 +60,10 @@ const StockPage = () => {
     fetchProducts();
   };
 
+  const filteredProducts = search.length >= 3
+    ? products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+    : products;
+
   const getStockColor = (quantity) => {
     const qty = parseFloat(quantity);
     if (qty === 0) return 'error';
@@ -75,6 +83,20 @@ const StockPage = () => {
             Inventario de productos
           </Typography>
         </Box>
+        <TextField
+          size="small"
+          placeholder="Buscar producto..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ width: { xs: '100%', md: 260 } }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchRoundedIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+        />
       </Box>
 
       {/* Products Table */}
@@ -103,17 +125,17 @@ const StockPage = () => {
                       ))}
                     </TableRow>
                   ))
-                ) : products.length === 0 ? (
+                ) : filteredProducts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 6 }}>
                       <InventoryRoundedIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
                       <Typography variant="body1" color="text.secondary">
-                        No hay productos registrados
+                        {search.length >= 3 ? 'No se encontraron productos' : 'No hay productos registrados'}
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  products.map((product) => (
+                  filteredProducts.map((product) => (
                     <TableRow key={product.id} hover>
                       <TableCell>
                         <Typography variant="body1" sx={{ fontWeight: 600 }}>
