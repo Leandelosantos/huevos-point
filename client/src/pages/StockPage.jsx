@@ -19,6 +19,7 @@ import {
   Button,
 } from '@mui/material';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
@@ -28,7 +29,7 @@ import api from '../services/api';
 import CategoryModal from '../components/stock/CategoryModal';
 import PriceEditModal from '../components/stock/PriceEditModal';
 import StockAdjustModal from '../components/stock/StockAdjustModal';
-import { showErrorToast, showSuccessToast } from '../utils/sweetAlert';
+import { showErrorToast, showSuccessToast, showConfirmation } from '../utils/sweetAlert';
 import { CURRENCY_FORMAT } from '../utils/formatters';
 
 const StockPage = () => {
@@ -81,6 +82,23 @@ const StockPage = () => {
     setStockAdjustModal({ open: false, category: null });
     showSuccessToast('Stock ajustado');
     fetchCategories();
+  };
+
+  const handleDeleteCategory = async (cat) => {
+    const confirmed = await showConfirmation(
+      `¿Eliminar categoría "${cat.name}"?`,
+      'Se eliminarán también todas sus presentaciones. Esta acción no se puede deshacer.',
+      'Sí, eliminar',
+      'Cancelar'
+    );
+    if (!confirmed) return;
+    try {
+      await api.delete(`/egg-categories/${cat.id}`);
+      showSuccessToast(`Categoría "${cat.name}" eliminada`);
+      fetchCategories();
+    } catch (err) {
+      showErrorToast(err.response?.data?.message || 'Error al eliminar la categoría');
+    }
   };
 
   return (
@@ -172,6 +190,15 @@ const StockPage = () => {
                               sx={{ color: 'primary.main' }}
                             >
                               <EditRoundedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Eliminar categoría">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteCategory(cat)}
+                              sx={{ color: 'error.main' }}
+                            >
+                              <DeleteRoundedIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </TableCell>
