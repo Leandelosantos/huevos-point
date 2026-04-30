@@ -23,6 +23,12 @@ const EggCategory = sequelize.define('EggCategory', {
     defaultValue: 0,
     field: 'stock_units',
   },
+  eggsPerCrate: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 360,
+    field: 'eggs_per_crate',
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,

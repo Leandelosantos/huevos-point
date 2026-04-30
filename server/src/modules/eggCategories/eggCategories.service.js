@@ -2,16 +2,22 @@ const sequelize = require('../../config/database');
 const { EggCategory, Product } = require('../../models');
 const AppError = require('../../utils/AppError');
 
-// Standard presentations auto-generated for each category
-const PRESENTATIONS = [
-  { suffix: 'Cajón', units: 360 },
-  { suffix: '1/2 Cajón', units: 180 },
-  { suffix: 'Maple', units: 30 },
-  { suffix: 'Docena', units: 12 },
+const EGGS_PER_CRATE = 360; // default (non-Jumbo)
+
+/**
+ * Returns presentation definitions for a given eggsPerCrate value.
+ * Docena (12) and 1/2 Docena (6) are always the same.
+ * Cajón, 1/2 Cajón, Maple derive from eggsPerCrate:
+ *   - Standard: 360, 180, 30  (eggsPerCrate=360)
+ *   - Jumbo:    240, 120, 20  (eggsPerCrate=240)
+ */
+const buildPresentations = (eggsPerCrate) => [
+  { suffix: 'Cajón',      units: eggsPerCrate },
+  { suffix: '1/2 Cajón',  units: Math.round(eggsPerCrate / 2) },
+  { suffix: 'Maple',      units: Math.round(eggsPerCrate / 12) },
+  { suffix: 'Docena',     units: 12 },
   { suffix: '1/2 Docena', units: 6 },
 ];
-
-const EGGS_PER_CRATE = 360;
 
 const getAll = async (tenantId) => {
   const categories = await EggCategory.findAll({
@@ -28,10 +34,12 @@ const getAll = async (tenantId) => {
 
   return categories.map((cat) => {
     const stockUnits = parseFloat(cat.stockUnits) || 0;
+    const eggsPerCrate = cat.eggsPerCrate || EGGS_PER_CRATE;
     return {
       ...cat.toJSON(),
       stockUnits,
-      stockCrates: +(stockUnits / EGGS_PER_CRATE).toFixed(2),
+      eggsPerCrate,
+      stockCrates: +(stockUnits / eggsPerCrate).toFixed(2),
       presentations: (cat.presentations || []).map((p) => ({
         ...p.toJSON(),
         availableStock: Math.floor(stockUnits / p.unitsPerPresentation),
@@ -54,9 +62,14 @@ const getById = async (id, tenantId) => {
   return category;
 };
 
-const create = async ({ name }, tenantId) => {
+const create = async ({ name, eggsPerCrate }, tenantId) => {
   if (!name || !name.trim()) {
     throw new AppError('El nombre de la categoría es obligatorio', 400);
+  }
+
+  const parsedEggsPerCrate = parseInt(eggsPerCrate, 10);
+  if (isNaN(parsedEggsPerCrate) || parsedEggsPerCrate <= 0) {
+    throw new AppError('eggsPerCrate debe ser un entero positivo', 400);
   }
 
   const existing = await EggCategory.findOne({ where: { name: name.trim(), tenantId } });
@@ -68,12 +81,13 @@ const create = async ({ name }, tenantId) => {
 
   await sequelize.transaction(async (t) => {
     category = await EggCategory.create(
-      { name: name.trim(), tenantId, stockUnits: 0 },
+      { name: name.trim(), tenantId, stockUnits: 0, eggsPerCrate: parsedEggsPerCrate },
       { transaction: t }
     );
 
-    // Auto-generate the 5 presentations
-    const products = PRESENTATIONS.map((p) => ({
+    // Auto-generate the 5 presentations based on eggsPerCrate
+    const presentations = buildPresentations(parsedEggsPerCrate);
+    const products = presentations.map((p) => ({
       name: `${p.suffix} ${name.trim()}`,
       tenantId,
       categoryId: category.id,
@@ -119,4 +133,4 @@ const remove = async (id, tenantId) => {
   return { message: 'Categoría eliminada' };
 };
 
-module.exports = { getAll, getById, create, updateStock, remove, EGGS_PER_CRATE, PRESENTATIONS };
+module.exports = { getAll, getById, create, updateStock, remove, EGGS_PER_CRATE, buildPresentations };

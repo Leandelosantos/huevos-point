@@ -42,6 +42,14 @@ const runMigrations = async () => {
     )
   `);
   await sequelize.query(`CREATE INDEX IF NOT EXISTS egg_categories_tenant_idx ON egg_categories (tenant_id, is_active)`);
+  const [eggsCrateCol] = await sequelize.query(`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'egg_categories' AND column_name = 'eggs_per_crate'
+  `);
+  if (eggsCrateCol.length === 0) {
+    await sequelize.query(`ALTER TABLE egg_categories ADD COLUMN eggs_per_crate INT NOT NULL DEFAULT 360`);
+    console.log('✅ Migración aplicada: eggs_per_crate en egg_categories');
+  }
 
   const [catCol] = await sequelize.query(`
     SELECT column_name FROM information_schema.columns

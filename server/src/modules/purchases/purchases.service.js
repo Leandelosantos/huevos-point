@@ -2,7 +2,7 @@ const purchasesRepository = require('./purchases.repository');
 const sequelize = require('../../config/database');
 const { EggCategory, Product } = require('../../models');
 const AppError = require('../../utils/AppError');
-const { EGGS_PER_CRATE } = require('../eggCategories/eggCategories.service');
+// EGGS_PER_CRATE not imported; use category.eggsPerCrate (per-category config)
 
 const createPurchase = async (purchaseData) => {
   const {
@@ -41,7 +41,7 @@ const createPurchase = async (purchaseData) => {
       }
 
       const parsedQuantity = parseFloat(quantity);
-      const eggsAdded = parsedQuantity * EGGS_PER_CRATE;
+      const eggsAdded = parsedQuantity * (category.eggsPerCrate || 360);
 
       const newPurchase = await purchasesRepository.create(
         {

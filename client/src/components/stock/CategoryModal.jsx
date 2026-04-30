@@ -11,10 +11,11 @@ import {
   IconButton,
   CircularProgress,
   Alert,
+  MenuItem,
 } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import EggRoundedIcon from '@mui/icons-material/EggRounded';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import api from '../../services/api';
 
 const CategoryModal = ({ open, onClose, onSuccess }) => {
@@ -25,14 +26,18 @@ const CategoryModal = ({ open, onClose, onSuccess }) => {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
-  } = useForm();
+  } = useForm({ defaultValues: { eggsPerCrate: 360 } });
 
   const onSubmit = async (formData) => {
     setError('');
     setSubmitting(true);
     try {
-      await api.post('/egg-categories', { name: formData.name.trim() });
+      await api.post('/egg-categories', {
+        name: formData.name.trim(),
+        eggsPerCrate: parseInt(formData.eggsPerCrate, 10),
+      });
       reset();
       onSuccess();
     } catch (err) {
@@ -80,8 +85,25 @@ const CategoryModal = ({ open, onClose, onSuccess }) => {
             {...register('name', { required: 'El nombre es obligatorio' })}
           />
 
+          <Controller
+            name="eggsPerCrate"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                select
+                fullWidth
+                label="Huevos por cajón"
+                sx={{ mt: 2 }}
+                {...field}
+              >
+                <MenuItem value={360}>360 — Standard (Super, Color, Nro. 1, 2, 3)</MenuItem>
+                <MenuItem value={240}>240 — Jumbo</MenuItem>
+              </TextField>
+            )}
+          />
+
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Se crearán automáticamente las 5 presentaciones: Cajón (360), 1/2 Cajón (180), Maple (30), Docena (12), 1/2 Docena (6).
+            Se crearán automáticamente las 5 presentaciones (Cajón, 1/2 Cajón, Maple, Docena, 1/2 Docena) con precios en $0.
           </Typography>
         </DialogContent>
 

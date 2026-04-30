@@ -25,7 +25,7 @@ import dayjs from 'dayjs';
 import api from '../../services/api';
 import { showErrorAlert } from '../../utils/sweetAlert';
 
-const EGGS_PER_CRATE = 360;
+const DEFAULT_EGGS_PER_CRATE = 360;
 
 const INIT_EGG = {
   purchaseDate: dayjs().format('YYYY-MM-DD'),
@@ -76,7 +76,9 @@ const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
     setGenericForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const eggsEquivalent = parseFloat(eggForm.quantity || 0) * EGGS_PER_CRATE;
+  const selectedCategory = (categories || []).find((c) => c.id === eggForm.categoryId || c.id === parseInt(eggForm.categoryId, 10));
+  const eggsPerCrate = selectedCategory?.eggsPerCrate || DEFAULT_EGGS_PER_CRATE;
+  const eggsEquivalent = parseFloat(eggForm.quantity || 0) * eggsPerCrate;
 
   const handleReceiptChange = (e) => {
     const file = e.target.files[0];
@@ -298,7 +300,7 @@ const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
               {eggsEquivalent > 0 && (
                 <Grid item xs={12}>
                   <Alert severity="info" icon={false} sx={{ fontWeight: 600 }}>
-                    Equivale a <strong>{eggsEquivalent}</strong> huevos ({(eggsEquivalent / 30).toFixed(0)} maples)
+                    Equivale a <strong>{eggsEquivalent}</strong> huevos ({(eggsEquivalent / (eggsPerCrate / 12)).toFixed(0)} maples)
                   </Alert>
                 </Grid>
               )}
