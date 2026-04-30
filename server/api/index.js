@@ -101,6 +101,50 @@ const migrationPromise = (async () => {
     await sequelize.query(`CREATE INDEX IF NOT EXISTS purchases_tenant_date_idx ON purchases (tenant_id, purchase_date)`);
     console.log('[migration] performance indexes ensured');
 
+    // ── Equivalencias huevos: egg_categories + alteraciones products/purchases ──
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS egg_categories (
+        id SERIAL PRIMARY KEY,
+        tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        name VARCHAR(50) NOT NULL,
+        stock_units DECIMAL(12,2) NOT NULL DEFAULT 0,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT now(),
+        updated_at TIMESTAMPTZ DEFAULT now(),
+        UNIQUE(tenant_id, name)
+      )
+    `);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS egg_categories_tenant_idx ON egg_categories (tenant_id, is_active)`);
+
+    // Add category_id and units_per_presentation to products
+    const [catCol] = await sequelize.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'products' AND column_name = 'category_id'
+    `);
+    if (catCol.length === 0) {
+      await sequelize.query(`ALTER TABLE products ADD COLUMN category_id INT REFERENCES egg_categories(id)`);
+      await sequelize.query(`ALTER TABLE products ADD COLUMN units_per_presentation INT DEFAULT 1`);
+      console.log('[migration] category_id + units_per_presentation added to products');
+    }
+
+    // Add category_id to purchases, make product_id nullable, quantity to DECIMAL
+    const [purCatCol] = await sequelize.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'purchases' AND column_name = 'category_id'
+    `);
+    if (purCatCol.length === 0) {
+      await sequelize.query(`ALTER TABLE purchases ADD COLUMN category_id INT REFERENCES egg_categories(id)`);
+      console.log('[migration] category_id added to purchases');
+    }
+    // Make product_id nullable (for new category-based purchases)
+    await sequelize.query(`ALTER TABLE purchases ALTER COLUMN product_id DROP NOT NULL`);
+    // Make price and margin_amount nullable (new purchases don't set selling price)
+    await sequelize.query(`ALTER TABLE purchases ALTER COLUMN price DROP NOT NULL`);
+    await sequelize.query(`ALTER TABLE purchases ALTER COLUMN margin_amount DROP NOT NULL`);
+    // Change quantity to DECIMAL for fractional cajones (0.5, 1.5)
+    await sequelize.query(`ALTER TABLE purchases ALTER COLUMN quantity TYPE DECIMAL(10,2)`);
+    console.log('[migration] egg equivalences schema ensured');
+
     // ── Fase 3: Suscripciones + Onboarding ──────────────────────────────────
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS subscription_plans (

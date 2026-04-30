@@ -15,6 +15,7 @@ router.get('/products',  requireScope('read:products'),  controller.listProducts
 router.get('/sales',     requireScope('read:sales'),     controller.listSales);
 router.get('/expenses',  requireScope('read:expenses'),  controller.listExpenses);
 router.get('/purchases', requireScope('read:purchases'), controller.listPurchases);
-router.get('/metrics',   requireScope('read:metrics'),   controller.getMetrics);
+router.get('/metrics',          requireScope('read:metrics'),          controller.getMetrics);
+router.get('/egg-categories',  requireScope('read:egg-categories'),  controller.listEggCategories);
 
 module.exports = router;

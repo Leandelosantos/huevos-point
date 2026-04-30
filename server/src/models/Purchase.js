@@ -17,8 +17,14 @@ const Purchase = sequelize.define(
     },
     productId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       field: 'product_id',
+    },
+    categoryId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'category_id',
+      references: { model: 'egg_categories', key: 'id' },
     },
     userId: {
       type: DataTypes.INTEGER,
@@ -26,7 +32,7 @@ const Purchase = sequelize.define(
       field: 'user_id',
     },
     quantity: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
     cost: {
@@ -35,11 +41,11 @@ const Purchase = sequelize.define(
     },
     price: {
       type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
+      allowNull: true,
     },
     marginAmount: {
       type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
+      allowNull: true,
       field: 'margin_amount',
     },
     provider: {

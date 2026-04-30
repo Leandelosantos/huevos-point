@@ -29,6 +29,18 @@ const Product = sequelize.define('Product', {
     allowNull: false,
     field: 'unit_price',
   },
+  categoryId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    field: 'category_id',
+    references: { model: 'egg_categories', key: 'id' },
+  },
+  unitsPerPresentation: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1,
+    field: 'units_per_presentation',
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,

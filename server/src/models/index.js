@@ -13,6 +13,7 @@ const OnboardingRegistration = require('./OnboardingRegistration');
 const ContactRequest = require('./ContactRequest');
 const SuperadminAuditLog = require('./SuperadminAuditLog');
 const ApiKey = require('./ApiKey');
+const EggCategory = require('./EggCategory');
 
 // Tenant Associations
 Tenant.belongsToMany(User, { through: { model: 'user_tenants', timestamps: false }, foreignKey: 'tenant_id', otherKey: 'user_id', as: 'users' });
@@ -68,6 +69,16 @@ SubscriptionPayment.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
 Tenant.hasMany(OnboardingRegistration, { foreignKey: 'tenantId', as: 'onboardingRegistrations' });
 OnboardingRegistration.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
 
+// EggCategory associations
+Tenant.hasMany(EggCategory, { foreignKey: 'tenantId', as: 'eggCategories' });
+EggCategory.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+
+EggCategory.hasMany(Product, { foreignKey: 'categoryId', as: 'presentations' });
+Product.belongsTo(EggCategory, { foreignKey: 'categoryId', as: 'category' });
+
+EggCategory.hasMany(Purchase, { foreignKey: 'categoryId', as: 'purchases' });
+Purchase.belongsTo(EggCategory, { foreignKey: 'categoryId', as: 'category' });
+
 // SuperadminAuditLog associations
 SuperadminAuditLog.belongsTo(Tenant, { foreignKey: 'targetTenant', as: 'tenant' });
 
@@ -90,4 +101,5 @@ module.exports = {
   ContactRequest,
   SuperadminAuditLog,
   ApiKey,
+  EggCategory,
 };

@@ -24,7 +24,7 @@ import ExcelJS from 'exceljs';
 import dayjs from 'dayjs';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { showSuccessToast, showErrorAlert, showErrorToast, showWarningAlert } from '../utils/sweetAlert';
+import { showSuccessToast, showErrorAlert, showErrorToast } from '../utils/sweetAlert';
 import PurchaseModal from '../components/purchases/PurchaseModal';
 import { CURRENCY_FORMAT } from '../utils/formatters';
 
@@ -33,6 +33,7 @@ const PurchasesPage = () => {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [categoriesCache, setCategoriesCache] = useState([]);
   const [productsCache, setProductsCache] = useState([]);
   
   const fileInputRef = useRef(null);
@@ -49,31 +50,33 @@ const PurchasesPage = () => {
     }
   }, []);
 
+  const fetchCategories = useCallback(async () => {
+    try {
+      const { data } = await api.get('/egg-categories');
+      setCategoriesCache(data.data || []);
+      return data.data || [];
+    } catch {
+      showErrorToast('No se pudieron cargar las categorías');
+      return [];
+    }
+  }, []);
+
   const fetchProducts = useCallback(async () => {
     try {
       const { data } = await api.get('/products');
       setProductsCache(data.data || []);
-      return data.data || [];
     } catch {
-      showErrorToast('No se pudo cargar el catálogo de productos');
-      return [];
+      showErrorToast('No se pudieron cargar los productos');
     }
   }, []);
 
   useEffect(() => {
     fetchPurchases();
+    fetchCategories();
     fetchProducts();
-  }, [fetchPurchases, fetchProducts]);
+  }, [fetchPurchases, fetchCategories, fetchProducts]);
 
-  const handleOpenModal = async () => {
-    const products = await fetchProducts();
-    if (products.length === 0) {
-      showWarningAlert(
-        'Catálogo Vacío',
-        'No existen productos en el sistema. Debes "Cargar Productos" mediante un archivo Excel/CSV antes de registrar una compra.'
-      );
-      return;
-    }
+  const handleOpenModal = () => {
     setModalOpen(true);
   };
 
@@ -123,8 +126,8 @@ const PurchasesPage = () => {
 
       const { data } = await api.post('/products/bulk', newProducts);
       showSuccessToast(`Productos sincronizados: ${data.data.created} nuevos, ${data.data.updated} actualizados`);
-      
-      fetchProducts(); // Update cache
+
+      fetchProducts();
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message || 'Error al procesar el archivo';
       showErrorAlert('Error de Importación', errorMsg);
@@ -154,6 +157,7 @@ const PurchasesPage = () => {
     setModalOpen(false);
     showSuccessToast('Compra registrada exitosamente');
     fetchPurchases();
+    fetchCategories();
     fetchProducts();
   };
 
@@ -215,12 +219,11 @@ const PurchasesPage = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Fecha</TableCell>
-                  <TableCell>Producto</TableCell>
+                  <TableCell>Categoría</TableCell>
                   <TableCell>Proveedor</TableCell>
-                  <TableCell align="center">Cant.</TableCell>
-                  <TableCell align="right">Costo Unit.</TableCell>
-                  <TableCell align="right">Precio Venta</TableCell>
-                  <TableCell align="right">Monto de margen</TableCell>
+                  <TableCell align="center">Cajones</TableCell>
+                  <TableCell align="center">Huevos</TableCell>
+                  <TableCell align="right">Costo/Cajón</TableCell>
                   <TableCell align="right">Total Invertido</TableCell>
                   <TableCell align="center">Comprobante</TableCell>
                 </TableRow>
@@ -236,74 +239,78 @@ const PurchasesPage = () => {
                   ))
                 ) : purchases.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                       <Typography variant="body2" color="text.secondary">
                         No hay compras registradas
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  purchases.map((purchase) => (
-                    <TableRow key={purchase.id} hover>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {dayjs(purchase.purchaseDate).format('DD/MM/YYYY')}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#2D6A4F' }}>
-                          {purchase.product?.name || 'Desconocido'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={purchase.provider || 'Sin Especificar'}
-                          size="small"
-                          sx={{ fontWeight: 600, fontSize: '0.7rem' }}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                          x{purchase.quantity}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2">
-                          {CURRENCY_FORMAT.format(purchase.cost)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2">
-                          {CURRENCY_FORMAT.format(purchase.price)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#2D6A4F' }}>
-                          {CURRENCY_FORMAT.format(parseFloat(purchase.price) - parseFloat(purchase.cost))}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#C62828' }}>
-                          -{CURRENCY_FORMAT.format(parseFloat(purchase.cost) * parseInt(purchase.quantity, 10))}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        {purchase.hasReceipt ? (
-                          <Tooltip title="Ver comprobante">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleViewReceipt(purchase.id)}
-                              sx={{ color: '#2D6A4F' }}
-                            >
-                              <ReceiptLongRoundedIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        ) : (
-                          <Typography variant="caption" color="text.disabled">—</Typography>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  purchases.map((purchase) => {
+                    const qty = parseFloat(purchase.quantity) || 0;
+                    const isEgg = Boolean(purchase.categoryId);
+                    const eggs = isEgg ? qty * 360 : null;
+                    return (
+                      <TableRow key={purchase.id} hover>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {dayjs(purchase.purchaseDate).format('DD/MM/YYYY')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#2D6A4F' }}>
+                            {purchase.category?.name || purchase.product?.name || '—'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={purchase.provider || 'Sin Especificar'}
+                            size="small"
+                            sx={{ fontWeight: 600, fontSize: '0.7rem' }}
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography variant="body2" sx={{ fontWeight: 800 }}>
+                            {qty}{isEgg ? ' caj.' : ' u.'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          {eggs != null ? (
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {eggs}
+                            </Typography>
+                          ) : (
+                            <Typography variant="caption" color="text.disabled">—</Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2">
+                            {CURRENCY_FORMAT.format(purchase.cost)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" sx={{ fontWeight: 800, color: '#C62828' }}>
+                            -{CURRENCY_FORMAT.format(parseFloat(purchase.cost) * qty)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          {purchase.hasReceipt ? (
+                            <Tooltip title="Ver comprobante">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleViewReceipt(purchase.id)}
+                                sx={{ color: '#2D6A4F' }}
+                              >
+                                <ReceiptLongRoundedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : (
+                            <Typography variant="caption" color="text.disabled">—</Typography>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
@@ -315,6 +322,7 @@ const PurchasesPage = () => {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSuccess={handlePurchaseSuccess}
+        categories={categoriesCache}
         products={productsCache}
       />
     </Box>

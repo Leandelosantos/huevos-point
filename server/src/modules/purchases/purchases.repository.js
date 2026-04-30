@@ -1,4 +1,4 @@
-const { Purchase, Product, User } = require('../../models');
+const { Purchase, Product, User, EggCategory } = require('../../models');
 
 const create = async (purchaseData, transaction) => {
   return await Purchase.create(purchaseData, { transaction });
@@ -21,6 +21,13 @@ const findAll = async (tenantId, { limit, offset }) => {
         model: Product,
         as: 'product',
         attributes: ['id', 'name'],
+        required: false,
+      },
+      {
+        model: EggCategory,
+        as: 'category',
+        attributes: ['id', 'name'],
+        required: false,
       },
       {
         model: User,

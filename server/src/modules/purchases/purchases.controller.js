@@ -5,19 +5,25 @@ const { createAuditLog } = require('../../utils/auditLogger');
 const createPurchase = async (req, res, next) => {
   try {
     const {
+      categoryId,
       productId,
       quantity,
       cost,
       price,
-      marginAmount,
       provider,
       purchaseDate,
       receiptData,
       receiptMimeType,
     } = req.body;
 
-    if (!productId || !quantity || cost === undefined || price === undefined || marginAmount === undefined || !purchaseDate) {
-      throw new AppError('Faltan datos requeridos (productId, quantity, cost, price, marginAmount, purchaseDate)', 400);
+    if (!categoryId && !productId) {
+      throw new AppError('Debe especificar categoryId (huevos) o productId (producto general)', 400);
+    }
+    if (categoryId && productId) {
+      throw new AppError('Especifique categoryId o productId, no ambos', 400);
+    }
+    if (!quantity || cost === undefined || !purchaseDate) {
+      throw new AppError('Faltan datos requeridos (quantity, cost, purchaseDate)', 400);
     }
 
     const tenantId = req.tenantId;
@@ -25,17 +31,21 @@ const createPurchase = async (req, res, next) => {
 
     const result = await purchasesService.createPurchase({
       tenantId,
-      productId,
+      categoryId: categoryId || null,
+      productId: productId || null,
       userId,
       quantity,
       cost,
-      price,
-      marginAmount,
+      price: price || null,
       provider,
       purchaseDate,
       receiptData: receiptData || null,
       receiptMimeType: receiptMimeType || null,
     });
+
+    const description = result.eggsAdded != null
+      ? `Compra registrada: ${quantity} cajones de ${result.categoryName}. +${result.eggsAdded} huevos. Costo $${cost}/cajón`
+      : `Compra registrada: ${quantity} unidades de ${result.productName}. Stock: ${result.previousStock} → ${result.newStock}. Costo $${cost}/u`;
 
     await createAuditLog({
       userId,
@@ -44,16 +54,16 @@ const createPurchase = async (req, res, next) => {
       actionType: 'COMPRA_REGISTRADA',
       entity: 'purchases',
       entityId: result.purchase.id,
-      description: `Compra registrada: ${quantity} unidades de ${result.productName}. Costo $${cost}, Precio $${price}`,
-      previousData: { stock: result.previousStock, price: result.previousPrice },
-      newData: { stock: result.newStock, price: result.newPrice },
+      description,
+      previousData: { stock: result.previousStock },
+      newData: { stock: result.newStock },
       ipAddress: req.ip,
     });
 
     res.status(201).json({
       success: true,
       data: result.purchase,
-      message: 'Compra registrada con éxito y stock actualizado',
+      message: `Compra registrada: +${result.eggsAdded} huevos de ${result.categoryName}`,
     });
   } catch (error) {
     next(error);

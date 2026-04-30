@@ -1,8 +1,14 @@
-const { Product } = require('../../models');
+const { Product, EggCategory } = require('../../models');
 
 const findAllActive = async (tenantId) => {
   return Product.findAll({
     where: { isActive: true, tenantId },
+    include: [{
+      model: EggCategory,
+      as: 'category',
+      attributes: ['id', 'name', 'stockUnits'],
+      required: false,
+    }],
     order: [['name', 'ASC']],
   });
 };

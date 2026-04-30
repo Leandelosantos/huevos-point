@@ -1,5 +1,5 @@
 const { Op, fn, col } = require('sequelize');
-const { Tenant, Product, Sale, SaleItem, Expense, Purchase } = require('../../models');
+const { Tenant, Product, Sale, SaleItem, Expense, Purchase, EggCategory } = require('../../models');
 
 /**
  * Resolves the list of tenant IDs visible for a given API key context.
@@ -169,6 +169,26 @@ const getAggregatedMetrics = async ({ businessId, tenantId, from, to }) => {
   };
 };
 
+const findEggCategories = async ({ businessId, tenantId, limit, offset }) => {
+  const tenantIds = await resolveTenantIds({ businessId, tenantId });
+  const where = { ...tenantScopeClause(tenantIds), isActive: true };
+  return EggCategory.findAndCountAll({
+    where,
+    attributes: ['id', 'tenantId', 'name', 'stockUnits', 'isActive', 'createdAt', 'updatedAt'],
+    include: [{
+      model: Product,
+      as: 'presentations',
+      where: { isActive: true },
+      required: false,
+      attributes: ['id', 'name', 'unitPrice', 'unitsPerPresentation'],
+    }],
+    order: [['id', 'ASC']],
+    limit,
+    offset,
+    distinct: true,
+  });
+};
+
 module.exports = {
   findTenants,
   findProducts,
@@ -176,4 +196,5 @@ module.exports = {
   findExpenses,
   findPurchases,
   getAggregatedMetrics,
+  findEggCategories,
 };

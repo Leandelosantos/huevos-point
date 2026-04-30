@@ -14,160 +14,225 @@ import {
   Tooltip,
   Skeleton,
   Chip,
+  Collapse,
   TextField,
-  InputAdornment,
+  Button,
 } from '@mui/material';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import InventoryRoundedIcon from '@mui/icons-material/InventoryRounded';
-import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import EggRoundedIcon from '@mui/icons-material/EggRounded';
 import api from '../services/api';
-import ProductModal from '../components/stock/ProductModal';
+import CategoryModal from '../components/stock/CategoryModal';
+import PriceEditModal from '../components/stock/PriceEditModal';
+import StockAdjustModal from '../components/stock/StockAdjustModal';
 import { showErrorToast, showSuccessToast } from '../utils/sweetAlert';
 import { CURRENCY_FORMAT } from '../utils/formatters';
 
 const StockPage = () => {
-  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [search, setSearch] = useState('');
+  const [expandedId, setExpandedId] = useState(null);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [priceModal, setPriceModal] = useState({ open: false, product: null });
+  const [stockAdjustModal, setStockAdjustModal] = useState({ open: false, category: null });
 
-  const fetchProducts = useCallback(async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await api.get('/products');
-      setProducts(data.data);
+      const { data } = await api.get('/egg-categories');
+      setCategories(data.data);
     } catch {
-      showErrorToast('Error al cargar productos');
+      showErrorToast('Error al cargar categorías');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchCategories();
+  }, [fetchCategories]);
 
-  const handleEdit = (product) => {
-    setEditingProduct(product);
-    setModalOpen(true);
+  const toggleExpand = (id) => {
+    setExpandedId((prev) => (prev === id ? null : id));
   };
 
-  const handleModalSuccess = () => {
-    setModalOpen(false);
-    showSuccessToast(editingProduct ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente');
-    setEditingProduct(null);
-    fetchProducts();
-  };
-
-  const filteredProducts = search.length >= 3
-    ? products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
-    : products;
-
-  const getStockColor = (quantity) => {
-    const qty = parseFloat(quantity);
-    if (qty === 0) return 'error';
-    if (qty < 30) return 'warning';
+  const getStockColor = (eggs) => {
+    if (eggs === 0) return 'error';
+    if (eggs < 360) return 'warning';
     return 'success';
+  };
+
+  const handleCategorySuccess = () => {
+    setCategoryModalOpen(false);
+    showSuccessToast('Categoría creada con presentaciones');
+    fetchCategories();
+  };
+
+  const handlePriceSuccess = () => {
+    setPriceModal({ open: false, product: null });
+    showSuccessToast('Precio actualizado');
+    fetchCategories();
+  };
+
+  const handleStockAdjustSuccess = () => {
+    setStockAdjustModal({ open: false, category: null });
+    showSuccessToast('Stock ajustado');
+    fetchCategories();
   };
 
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, mb: 4, flexWrap: 'wrap', gap: 2, overflow: 'hidden', width: '100%' }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, mb: 4, gap: 2 }}>
         <Box>
           <Typography variant="h2" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.5 }}>
             Stock
           </Typography>
           <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-            Inventario de productos
+            Inventario por categoría de huevos
           </Typography>
         </Box>
-        <TextField
-          size="small"
-          placeholder="Buscar producto..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          sx={{ width: { xs: '100%', md: 260 } }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchRoundedIcon fontSize="small" />
-              </InputAdornment>
-            ),
-          }}
-        />
+        <Button
+          variant="contained"
+          startIcon={<AddRoundedIcon />}
+          onClick={() => setCategoryModalOpen(true)}
+        >
+          Nueva Categoría
+        </Button>
       </Box>
 
-      {/* Products Table */}
+      {/* Categories Table */}
       <Card>
         <CardContent sx={{ p: 0 }}>
-          <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
-            <Table sx={{ minWidth: { xs: 600, md: '100%' } }}>
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Producto</TableCell>
-                  <TableCell align="center">Stock</TableCell>
-                  <TableCell align="right">Precio Unitario</TableCell>
-                  <TableCell align="center" sx={{ width: 120 }}>
-                    Acciones
-                  </TableCell>
+                  <TableCell sx={{ width: 50 }} />
+                  <TableCell>Categoría</TableCell>
+                  <TableCell align="center">Stock (huevos)</TableCell>
+                  <TableCell align="center">Cajones</TableCell>
+                  <TableCell align="center" sx={{ width: 120 }}>Acciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   Array.from({ length: 4 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 4 }).map((_, j) => (
-                        <TableCell key={j}>
-                          <Skeleton />
-                        </TableCell>
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <TableCell key={j}><Skeleton /></TableCell>
                       ))}
                     </TableRow>
                   ))
-                ) : filteredProducts.length === 0 ? (
+                ) : categories.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} align="center" sx={{ py: 6 }}>
-                      <InventoryRoundedIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
+                    <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                      <EggRoundedIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
                       <Typography variant="body1" color="text.secondary">
-                        {search.length >= 3 ? 'No se encontraron productos' : 'No hay productos registrados'}
+                        No hay categorías. Creá una para comenzar.
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredProducts.map((product) => (
-                    <TableRow key={product.id} hover>
-                      <TableCell>
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                          {product.name}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip
-                          label={product.stockQuantity}
-                          size="small"
-                          color={getStockColor(product.stockQuantity)}
-                          variant="outlined"
-                          sx={{ fontWeight: 700, minWidth: 60 }}
-                        />
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                          {CURRENCY_FORMAT.format(product.unitPrice)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Editar">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEdit(product)}
-                            sx={{ color: 'primary.main' }}
-                          >
-                            <EditRoundedIcon fontSize="small" />
+                  categories.map((cat) => (
+                    <>
+                      <TableRow key={cat.id} hover sx={{ cursor: 'pointer' }} onClick={() => toggleExpand(cat.id)}>
+                        <TableCell>
+                          <IconButton size="small">
+                            {expandedId === cat.id ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
                           </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                            {cat.name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={`${Math.floor(cat.stockUnits)} huevos`}
+                            size="small"
+                            color={getStockColor(cat.stockUnits)}
+                            variant="outlined"
+                            sx={{ fontWeight: 700, minWidth: 100 }}
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {cat.stockCrates}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center" onClick={(e) => e.stopPropagation()}>
+                          <Tooltip title="Ajustar stock">
+                            <IconButton
+                              size="small"
+                              onClick={() => setStockAdjustModal({ open: true, category: cat })}
+                              sx={{ color: 'primary.main' }}
+                            >
+                              <EditRoundedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                      {/* Expanded presentations */}
+                      <TableRow key={`${cat.id}-expand`}>
+                        <TableCell colSpan={5} sx={{ py: 0, borderBottom: expandedId === cat.id ? undefined : 'none' }}>
+                          <Collapse in={expandedId === cat.id} timeout="auto" unmountOnExit>
+                            <Box sx={{ py: 2, pl: 4 }}>
+                              <Typography variant="subtitle2" sx={{ mb: 1, color: 'text.secondary' }}>
+                                Presentaciones
+                              </Typography>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>Presentación</TableCell>
+                                    <TableCell align="center">Unids/pres.</TableCell>
+                                    <TableCell align="center">Disponible</TableCell>
+                                    <TableCell align="right">Precio</TableCell>
+                                    <TableCell align="center" sx={{ width: 80 }}>Editar</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {(cat.presentations || []).map((p) => (
+                                    <TableRow key={p.id}>
+                                      <TableCell>{p.name}</TableCell>
+                                      <TableCell align="center">{p.unitsPerPresentation}</TableCell>
+                                      <TableCell align="center">
+                                        <Chip
+                                          label={p.availableStock}
+                                          size="small"
+                                          color={p.availableStock === 0 ? 'error' : 'default'}
+                                          variant="outlined"
+                                          sx={{ fontWeight: 600, minWidth: 50 }}
+                                        />
+                                      </TableCell>
+                                      <TableCell align="right">
+                                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                          {parseFloat(p.unitPrice) > 0 ? CURRENCY_FORMAT.format(p.unitPrice) : '—'}
+                                        </Typography>
+                                      </TableCell>
+                                      <TableCell align="center">
+                                        <Tooltip title="Editar precio">
+                                          <IconButton
+                                            size="small"
+                                            onClick={() => setPriceModal({ open: true, product: p })}
+                                            sx={{ color: 'primary.main' }}
+                                          >
+                                            <EditRoundedIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </Box>
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    </>
                   ))
                 )}
               </TableBody>
@@ -176,14 +241,23 @@ const StockPage = () => {
         </CardContent>
       </Card>
 
-      <ProductModal
-        open={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setEditingProduct(null);
-        }}
-        onSuccess={handleModalSuccess}
-        product={editingProduct}
+      {/* Modals */}
+      <CategoryModal
+        open={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        onSuccess={handleCategorySuccess}
+      />
+      <PriceEditModal
+        open={priceModal.open}
+        onClose={() => setPriceModal({ open: false, product: null })}
+        onSuccess={handlePriceSuccess}
+        product={priceModal.product}
+      />
+      <StockAdjustModal
+        open={stockAdjustModal.open}
+        onClose={() => setStockAdjustModal({ open: false, category: null })}
+        onSuccess={handleStockAdjustSuccess}
+        category={stockAdjustModal.category}
       />
     </Box>
   );

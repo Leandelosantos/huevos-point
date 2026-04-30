@@ -1,6 +1,6 @@
 const sequelize = require('../../config/database');
 const salesRepository = require('./sales.repository');
-const { Product } = require('../../models');
+const { Product, EggCategory } = require('../../models');
 const AppError = require('../../utils/AppError');
 
 const registerSale = async (userId, items, paymentSplits, tenantId, saleDate) => {
@@ -10,31 +10,68 @@ const registerSale = async (userId, items, paymentSplits, tenantId, saleDate) =>
     let totalAmount = 0;
     const saleItems = [];
 
+    // Cache categories to avoid multiple locks on same category within one sale
+    const categoryCache = {};
+
     for (const item of items) {
       const product = await Product.findOne({
         where: { id: item.productId, tenantId },
         transaction,
-        lock: transaction.LOCK.UPDATE,
       });
 
       if (!product || !product.isActive) {
         throw new AppError(`Producto con ID ${item.productId} no encontrado`, 404);
       }
 
-      const currentStock = parseFloat(product.stockQuantity);
       const requestedQuantity = parseFloat(item.quantity);
 
-      if (requestedQuantity > currentStock) {
-        throw new AppError(
-          `Stock insuficiente para "${product.name}". Disponible: ${currentStock}, Solicitado: ${requestedQuantity}`,
-          400
-        );
+      if (product.categoryId) {
+        // ── Egg product: deduct from category stock ──────────────────────
+        const eggsNeeded = requestedQuantity * (product.unitsPerPresentation || 1);
+
+        if (!categoryCache[product.categoryId]) {
+          const category = await EggCategory.findOne({
+            where: { id: product.categoryId, tenantId },
+            transaction,
+            lock: transaction.LOCK.UPDATE,
+          });
+          if (!category) {
+            throw new AppError(`Categoría del producto "${product.name}" no encontrada`, 404);
+          }
+          categoryCache[product.categoryId] = category;
+        }
+
+        const category = categoryCache[product.categoryId];
+        const currentCategoryStock = parseFloat(category.stockUnits);
+
+        if (eggsNeeded > currentCategoryStock) {
+          const availablePresentation = Math.floor(currentCategoryStock / (product.unitsPerPresentation || 1));
+          throw new AppError(
+            `Stock insuficiente para "${product.name}". Disponible: ${availablePresentation}, Solicitado: ${requestedQuantity}`,
+            400
+          );
+        }
+
+        const newCategoryStock = currentCategoryStock - eggsNeeded;
+        await category.update({ stockUnits: newCategoryStock }, { transaction });
+        category.stockUnits = newCategoryStock;
+
+      } else {
+        // ── Generic product: deduct from product.stockQuantity ────────────
+        const currentStock = product.stockQuantity || 0;
+        if (requestedQuantity > currentStock) {
+          throw new AppError(
+            `Stock insuficiente para "${product.name}". Disponible: ${currentStock}, Solicitado: ${requestedQuantity}`,
+            400
+          );
+        }
+        await product.update({ stockQuantity: currentStock - requestedQuantity }, { transaction });
       }
 
       const unitPrice = parseFloat(product.unitPrice);
       const discountPercentage = parseFloat(item.discount || 0);
       let subtotal = requestedQuantity * unitPrice;
-      
+
       if (discountPercentage > 0) {
         subtotal = subtotal * (1 - discountPercentage / 100);
       }
@@ -49,12 +86,6 @@ const registerSale = async (userId, items, paymentSplits, tenantId, saleDate) =>
         discount: discountPercentage,
         discountConcept: discountPercentage > 0 ? (item.discountConcept || null) : null,
       });
-
-      // Deduct stock always
-      await product.update(
-        { stockQuantity: currentStock - requestedQuantity },
-        { transaction }
-      );
     }
 
     // Normalize splits: if single split with no amount, amount = total

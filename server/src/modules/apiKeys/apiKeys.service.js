@@ -11,6 +11,7 @@ const VALID_SCOPES = [
   'read:expenses',
   'read:purchases',
   'read:metrics',
+  'read:egg-categories',
 ];
 
 const PREFIX = 'hp_live_';

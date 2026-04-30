@@ -27,6 +27,7 @@ const apiKeysRoutes = require('./modules/apiKeys/apiKeys.routes');
 const onboardingRoutes = require('./modules/onboarding/onboarding.routes');
 const subscriptionsRoutes = require('./modules/subscriptions/subscriptions.routes');
 const webhooksRoutes = require('./modules/webhooks/webhooks.routes');
+const eggCategoriesRoutes = require('./modules/eggCategories/eggCategories.routes');
 
 const app = express();
 
@@ -99,6 +100,7 @@ app.use('/api/metrics', subscriptionCheck, metricsRoutes);
 app.use('/api/users', subscriptionCheck, usersRoutes);
 app.use('/api/tenants', tenantsRoutes);
 app.use('/api/purchases', subscriptionCheck, purchasesRoutes);
+app.use('/api/egg-categories', subscriptionCheck, eggCategoriesRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/superadmin', superadminRoutes);
 

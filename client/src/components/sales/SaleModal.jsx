@@ -72,6 +72,14 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
 
   const getProductById = (id) => products.find((p) => p.id === id);
 
+  const getAvailableStock = (product) => {
+    if (!product) return 0;
+    if (product.category) {
+      return Math.floor(parseFloat(product.category.stockUnits) / (product.unitsPerPresentation || 1));
+    }
+    return product.stockQuantity ?? 0;
+  };
+
   const getSubtotal = (item) => {
     const product = getProductById(item.productId);
     if (!product || !item.quantity) return 0;
@@ -134,7 +142,7 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
       if (!item.productId || !item.quantity || parseFloat(item.quantity) <= 0) return false;
       const product = getProductById(item.productId);
       if (!product) return false;
-      return parseFloat(item.quantity) <= parseFloat(product.stockQuantity);
+      return parseFloat(item.quantity) <= getAvailableStock(product);
     });
     return itemsValid && isPaymentValid();
   };
@@ -189,8 +197,9 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
         {items.map((item, index) => {
           const product = getProductById(item.productId);
           const subtotal = getSubtotal(item);
+          const availableStock = getAvailableStock(product);
           const stockExceeded =
-            product && item.quantity && parseFloat(item.quantity) > parseFloat(product.stockQuantity);
+            product && item.quantity && parseFloat(item.quantity) > availableStock;
           const hasDiscount = item.discount && parseFloat(item.discount) > 0;
 
           return (
@@ -216,7 +225,7 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
                     <MenuItem key={p.id} value={p.id}>
                       {p.name} — {CURRENCY_FORMAT.format(p.unitPrice)}{' '}
                       <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-                        (Stock: {p.stockQuantity})
+                        (Stock: {getAvailableStock(p)})
                       </Typography>
                     </MenuItem>
                   ))}
@@ -228,7 +237,7 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
                   value={item.quantity}
                   onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                   error={stockExceeded}
-                  helperText={stockExceeded ? `Máx: ${product.stockQuantity}` : ''}
+                  helperText={stockExceeded ? `Máx: ${availableStock}` : ''}
                   size="medium"
                   slotProps={{ htmlInput: { min: 0, step: 0.5 } }}
                 />

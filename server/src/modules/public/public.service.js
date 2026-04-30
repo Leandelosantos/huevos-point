@@ -88,6 +88,12 @@ const getMetrics = async (ctx, query) => {
   return repo.getAggregatedMetrics({ ...ctx, from, to });
 };
 
+const listEggCategories = async (ctx, query) => {
+  const { limit, offset } = parsePagination(query);
+  const { count, rows } = await repo.findEggCategories({ ...ctx, limit, offset });
+  return { data: rows, meta: buildMeta({ count, limit, offset }) };
+};
+
 module.exports = {
   listTenants,
   listProducts,
@@ -95,6 +101,7 @@ module.exports = {
   listExpenses,
   listPurchases,
   getMetrics,
+  listEggCategories,
   // exported for tests
   _internal: { parsePagination, parseDate, parseDateRange, MAX_LIMIT, DEFAULT_LIMIT },
 };

@@ -50,6 +50,13 @@ const getMetrics = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+const listEggCategories = async (req, res, next) => {
+  try {
+    const result = await service.listEggCategories(ctx(req), req.query);
+    return ok(res, result);
+  } catch (e) { next(e); }
+};
+
 const ping = (_req, res) => {
   res.json({ success: true, data: { status: 'ok', api: 'public/v1', timestamp: new Date().toISOString() } });
 };
@@ -61,5 +68,6 @@ module.exports = {
   listExpenses,
   listPurchases,
   getMetrics,
+  listEggCategories,
   ping,
 };
