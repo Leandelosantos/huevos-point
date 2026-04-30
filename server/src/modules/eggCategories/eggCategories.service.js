@@ -122,12 +122,13 @@ const remove = async (id, tenantId) => {
   if (!category) throw new AppError('Categoría no encontrada', 404);
 
   await sequelize.transaction(async (t) => {
-    // Soft-delete presentations
+    // Soft-delete presentations and clear FK so the category row can be hard-deleted
+    // (the UNIQUE constraint on (tenant_id, name) would block future recreation otherwise)
     await Product.update(
-      { isActive: false },
+      { isActive: false, categoryId: null },
       { where: { categoryId: id, tenantId }, transaction: t }
     );
-    await category.update({ isActive: false }, { transaction: t });
+    await category.destroy({ transaction: t });
   });
 
   return { message: 'Categoría eliminada' };
