@@ -58,9 +58,14 @@ const runMigrations = async () => {
 
   await sequelize.query(`ALTER TABLE products DROP CONSTRAINT IF EXISTS product_tenant_name_unique`);
   await sequelize.query(`ALTER TABLE products DROP CONSTRAINT IF EXISTS products_tenant_id_name_key`);
+  await sequelize.query(`ALTER TABLE products DROP CONSTRAINT IF EXISTS products_name_key`);
+  await sequelize.query(`ALTER TABLE products DROP CONSTRAINT IF EXISTS products_name_key1`);
+  await sequelize.query(`DROP INDEX IF EXISTS products_name_key`);
+  await sequelize.query(`DROP INDEX IF EXISTS products_name_key1`);
   await sequelize.query(`CREATE UNIQUE INDEX IF NOT EXISTS products_active_name_uidx ON products(tenant_id, name) WHERE is_active = true`);
-  await sequelize.query(`DELETE FROM products WHERE is_active = false AND category_id IS NULL AND units_per_presentation > 1`);
-  console.log('✅ Migración aplicada: partial unique index en products');
+  await sequelize.query(`DELETE FROM products WHERE is_active = false AND units_per_presentation > 1`);
+  await sequelize.query(`DELETE FROM egg_categories WHERE is_active = false`);
+  console.log('✅ Migración aplicada: partial unique index en products + limpieza huérfanos');
 
   const [catCol] = await sequelize.query(`
     SELECT column_name FROM information_schema.columns

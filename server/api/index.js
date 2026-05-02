@@ -132,13 +132,21 @@ const migrationPromise = (async () => {
       console.log('[migration] eggs_per_crate added to egg_categories');
     }
 
-    // Products: replace UNIQUE(tenant_id, name) with partial index (only active rows)
+    // Products: drop ALL legacy unique constraints on name (global or per-tenant)
+    // These constraints block bulkCreate of presentations when recreating a deleted category
     await sequelize.query(`ALTER TABLE products DROP CONSTRAINT IF EXISTS product_tenant_name_unique`);
     await sequelize.query(`ALTER TABLE products DROP CONSTRAINT IF EXISTS products_tenant_id_name_key`);
+    await sequelize.query(`ALTER TABLE products DROP CONSTRAINT IF EXISTS products_name_key`);
+    await sequelize.query(`ALTER TABLE products DROP CONSTRAINT IF EXISTS products_name_key1`);
+    await sequelize.query(`DROP INDEX IF EXISTS products_name_key`);
+    await sequelize.query(`DROP INDEX IF EXISTS products_name_key1`);
+    // Create correct partial unique index: only active rows, scoped by tenant
     await sequelize.query(`CREATE UNIQUE INDEX IF NOT EXISTS products_active_name_uidx ON products(tenant_id, name) WHERE is_active = true`);
-    // Hard-delete orphaned inactive presentation-products (category_id IS NULL after remove())
-    await sequelize.query(`DELETE FROM products WHERE is_active = false AND category_id IS NULL AND units_per_presentation > 1`);
-    console.log('[migration] products partial unique index ensured');
+    // Hard-delete orphaned inactive presentations left from soft-delete logic
+    await sequelize.query(`DELETE FROM products WHERE is_active = false AND units_per_presentation > 1`);
+    // Hard-delete orphaned inactive egg_categories
+    await sequelize.query(`DELETE FROM egg_categories WHERE is_active = false`);
+    console.log('[migration] products & egg_categories partial unique indexes ensured');
 
     // Add category_id and units_per_presentation to products
     const [catCol] = await sequelize.query(`
