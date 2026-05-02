@@ -115,6 +115,14 @@ const migrationPromise = (async () => {
       )
     `);
     await sequelize.query(`CREATE INDEX IF NOT EXISTS egg_categories_tenant_idx ON egg_categories (tenant_id, is_active)`);
+    // Replace broad UNIQUE(tenant_id,name) with partial index (only active rows).
+    // Allows recreating a category with the same name after deletion.
+    await sequelize.query(`ALTER TABLE egg_categories DROP CONSTRAINT IF EXISTS egg_categories_tenant_id_name_key`);
+    await sequelize.query(`CREATE UNIQUE INDEX IF NOT EXISTS egg_categories_active_name_uidx ON egg_categories(tenant_id, name) WHERE is_active = true`);
+    // Hard-delete orphaned inactive categories (left over from old soft-delete logic)
+    await sequelize.query(`DELETE FROM egg_categories WHERE is_active = false`);
+    console.log('[migration] egg_categories partial unique index ensured');
+
     const [eggsCrateCol] = await sequelize.query(`
       SELECT column_name FROM information_schema.columns
       WHERE table_name = 'egg_categories' AND column_name = 'eggs_per_crate'

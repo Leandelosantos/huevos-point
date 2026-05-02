@@ -39,7 +39,8 @@ const EggCategory = sequelize.define('EggCategory', {
   timestamps: true,
   underscored: true,
   indexes: [
-    { unique: true, fields: ['tenant_id', 'name'] },
+    // Partial unique index (only active rows) — managed via raw migration, not Sequelize sync
+    { fields: ['tenant_id', 'is_active'] },
   ],
 });
 
