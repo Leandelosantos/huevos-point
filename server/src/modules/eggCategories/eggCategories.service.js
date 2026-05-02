@@ -72,7 +72,7 @@ const create = async ({ name, eggsPerCrate }, tenantId) => {
     throw new AppError('eggsPerCrate debe ser un entero positivo', 400);
   }
 
-  const existing = await EggCategory.findOne({ where: { name: name.trim(), tenantId } });
+  const existing = await EggCategory.findOne({ where: { name: name.trim(), tenantId, isActive: true } });
   if (existing) {
     throw new AppError(`Ya existe la categoría "${name}"`, 409);
   }
