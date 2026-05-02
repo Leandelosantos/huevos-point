@@ -132,6 +132,14 @@ const migrationPromise = (async () => {
       console.log('[migration] eggs_per_crate added to egg_categories');
     }
 
+    // Products: replace UNIQUE(tenant_id, name) with partial index (only active rows)
+    await sequelize.query(`ALTER TABLE products DROP CONSTRAINT IF EXISTS product_tenant_name_unique`);
+    await sequelize.query(`ALTER TABLE products DROP CONSTRAINT IF EXISTS products_tenant_id_name_key`);
+    await sequelize.query(`CREATE UNIQUE INDEX IF NOT EXISTS products_active_name_uidx ON products(tenant_id, name) WHERE is_active = true`);
+    // Hard-delete orphaned inactive presentation-products (category_id IS NULL after remove())
+    await sequelize.query(`DELETE FROM products WHERE is_active = false AND category_id IS NULL AND units_per_presentation > 1`);
+    console.log('[migration] products partial unique index ensured');
+
     // Add category_id and units_per_presentation to products
     const [catCol] = await sequelize.query(`
       SELECT column_name FROM information_schema.columns

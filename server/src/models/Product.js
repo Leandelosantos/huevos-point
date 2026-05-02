@@ -10,7 +10,6 @@ const Product = sequelize.define('Product', {
   name: {
     type: DataTypes.STRING(100),
     allowNull: false,
-    unique: 'product_tenant_name_unique',
   },
   tenantId: {
     type: DataTypes.INTEGER,
