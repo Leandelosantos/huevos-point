@@ -59,6 +59,24 @@ const validateProduct = [
   handleValidationErrors,
 ];
 
+// For PUT updates: all fields optional, validate only what's present
+const validateProductUpdate = [
+  body('name')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('El nombre no puede estar vacío'),
+  body('stockQuantity')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La cantidad debe ser un número no negativo'),
+  body('unitPrice')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('El precio debe ser un número no negativo'),
+  handleValidationErrors,
+];
+
 const validatePurchase = [
   // Either categoryId (egg purchase) or productId (generic product) must be present
   body('categoryId')
@@ -88,6 +106,7 @@ module.exports = {
   validateSale,
   validateExpense,
   validateProduct,
+  validateProductUpdate,
   validatePurchase,
   handleValidationErrors,
 };
