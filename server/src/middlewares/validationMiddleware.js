@@ -60,16 +60,24 @@ const validateProduct = [
 ];
 
 const validatePurchase = [
-  body('productId')
+  // Either categoryId (egg purchase) or productId (generic product) must be present
+  body('categoryId')
+    .if(body('productId').not().exists())
     .isInt({ min: 1 })
-    .withMessage('ID de producto inválido'),
+    .withMessage('Se requiere categoryId (huevos) o productId (producto general)'),
+  body('productId')
+    .if(body('categoryId').not().exists())
+    .isInt({ min: 1 })
+    .withMessage('Se requiere productId o categoryId'),
   body('quantity')
     .isFloat({ gt: 0 })
     .withMessage('La cantidad debe ser mayor a 0'),
   body('cost')
     .isFloat({ min: 0 })
     .withMessage('El costo debe ser un número no negativo'),
+  // price is optional (only for generic products, to update sale price)
   body('price')
+    .optional()
     .isFloat({ gt: 0 })
     .withMessage('El precio de venta debe ser mayor a 0'),
   handleValidationErrors,
