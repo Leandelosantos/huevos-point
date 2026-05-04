@@ -177,6 +177,30 @@ const migrationPromise = (async () => {
     await sequelize.query(`ALTER TABLE purchases ALTER COLUMN quantity TYPE DECIMAL(10,2)`);
     console.log('[migration] egg equivalences schema ensured');
 
+    // ── Promo x2 maples: agregar presentación a categorías existentes ────────
+    await sequelize.query(`
+      INSERT INTO products (tenant_id, name, category_id, units_per_presentation, unit_price, stock_quantity, is_active, created_at, updated_at)
+      SELECT
+        c.tenant_id,
+        'Promo x2 maples ' || c.name,
+        c.id,
+        ROUND(c.eggs_per_crate::numeric / 12) * 2,
+        0,
+        0,
+        true,
+        now(),
+        now()
+      FROM egg_categories c
+      WHERE c.is_active = true
+        AND NOT EXISTS (
+          SELECT 1 FROM products p
+          WHERE p.category_id = c.id
+            AND p.name = 'Promo x2 maples ' || c.name
+            AND p.is_active = true
+        )
+    `);
+    console.log('[migration] promo x2 maples presentations ensured');
+
     // ── Fase 3: Suscripciones + Onboarding ──────────────────────────────────
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS subscription_plans (

@@ -10,13 +10,17 @@ const EGGS_PER_CRATE = 360; // default (non-Jumbo)
  * Cajón, 1/2 Cajón, Maple derive from eggsPerCrate:
  *   - Standard: 360, 180, 30  (eggsPerCrate=360)
  *   - Jumbo:    240, 120, 20  (eggsPerCrate=240)
+ * Promo x2 maples = 2 × maple units:
+ *   - Standard: 60  (eggsPerCrate=360)
+ *   - Jumbo:    40  (eggsPerCrate=240)
  */
 const buildPresentations = (eggsPerCrate) => [
-  { suffix: 'Cajón',      units: eggsPerCrate },
-  { suffix: '1/2 Cajón',  units: Math.round(eggsPerCrate / 2) },
-  { suffix: 'Maple',      units: Math.round(eggsPerCrate / 12) },
-  { suffix: 'Docena',     units: 12 },
-  { suffix: '1/2 Docena', units: 6 },
+  { suffix: 'Cajón',           units: eggsPerCrate },
+  { suffix: '1/2 Cajón',       units: Math.round(eggsPerCrate / 2) },
+  { suffix: 'Maple',           units: Math.round(eggsPerCrate / 12) },
+  { suffix: 'Docena',          units: 12 },
+  { suffix: '1/2 Docena',      units: 6 },
+  { suffix: 'Promo x2 maples', units: Math.round(eggsPerCrate / 12) * 2 },
 ];
 
 const getAll = async (tenantId) => {
