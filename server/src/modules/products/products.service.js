@@ -26,6 +26,11 @@ const updateProduct = async (id, data, tenantId) => {
   return product;
 };
 
+const deleteAllGenericProducts = async (tenantId) => {
+  const [count] = await productsRepository.softDeleteAllGeneric(tenantId);
+  return { deleted: count };
+};
+
 const deleteProduct = async (id, tenantId) => {
   const product = await productsRepository.findById(id, tenantId);
   if (!product) {
@@ -48,6 +53,9 @@ const processBulkStock = async (productsData, tenantId) => {
   const t = await sequelize.transaction();
 
   try {
+    // Replace strategy: soft-delete all existing generic products first
+    await productsRepository.softDeleteAllGeneric(tenantId, { transaction: t });
+
     for (const item of productsData) {
       const { name, stockQuantity = 0, unitPrice = 0 } = item;
       
@@ -113,5 +121,6 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
+  deleteAllGenericProducts,
   processBulkStock,
 };

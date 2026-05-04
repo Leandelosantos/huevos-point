@@ -144,10 +144,11 @@ buildPresentations(eggsPerCrate) → 6 presentaciones:
 - Estándar: `eggsPerCrate = 360` → Maple = 30 unidades, Promo = 60 unidades
 
 ### Eliminación de categoría (`remove`)
-1. `Purchase.update({ categoryId: null })` → nullear FK en compras (evita FK constraint)
-2. `Product.update({ isActive: false, categoryId: null })` → soft-delete presentaciones
+1. `Purchase.update({ categoryId: null })` → nullear FK en compras (sin filtro tenantId — la FK es global)
+2. `Product.update({ isActive: false, categoryId: null })` → soft-delete presentaciones (sin filtro tenantId)
 3. `category.destroy()` → hard-delete categoría
 Todo dentro de una transacción.
+**Crítico:** los updates de FK cleanup NO filtran por `tenantId`. La FK constraint en PostgreSQL es global — si quedan referencias desde cualquier tenant, el `category.destroy()` falla.
 
 ### Índices parciales (solo filas activas)
 - `egg_categories_active_name_uidx ON egg_categories(tenant_id, name) WHERE is_active = true`
@@ -173,12 +174,19 @@ Todo dentro de una transacción.
 - Modo demo (rol `demo` interceptado antes de tocar BD)
 - Superadmin con dashboard de gestión global
 
-### Recientemente implementado (sesión actual)
+### Recientemente implementado (sesiones anteriores)
 - **Editar/eliminar compras** — solo superadmin. Con reversión de stock delta en transacción.
 - **Buscador en SaleModal** — Autocomplete MUI reemplazó al select, filtra por nombre desde 3 letras
 - **Tab "Productos Cargados"** en PurchasesPage — lista productos genéricos (sin categoryId) con búsqueda, edición inline y eliminación
 - **Presentación "Promo x2 maples"** — 6ta presentación auto-generada en todas las categorías
 - **Fix bug 409 al recrear categoría** — eliminadas constraints globales UNIQUE, reemplazadas por índices parciales; también se nullea `category_id` en purchases al eliminar categoría
+
+### Recientemente implementado (sesión actual — 2026-05-04)
+- **Fix definitivo bug 409 al eliminar categoría** — `remove()` en `eggCategories.service.js` ya no filtra por `tenantId` en los updates de FK cleanup (`Purchase.update`, `Product.update`). La FK en PostgreSQL es global; cualquier referencia de cualquier tenant bloqueaba el `category.destroy()`.
+- **Migración: DROP INDEX explícito en egg_categories** — `server/api/index.js` y `server/src/server.js` ahora droppean nombres conocidos de índices directos (`egg_categories_name_key`, `egg_categories_tenant_id_name_key`, etc.) que no aparecen en `information_schema.table_constraints`.
+- **Buscador en PurchaseModal (producto general)** — `TextField select` reemplazado por `Autocomplete` MUI con filtro desde 3 letras. Estado: `productSearch` + `selectedProduct`. Reset al abrir el modal.
+- **Fix stock decimal en compras de productos genéricos** — `purchases.service.js`: `product.stockQuantity || 0` causaba concatenación de strings (`"0.00" + 5 = "0.005"` → PostgreSQL redondeaba a `0.01`). Corregido a `parseFloat(product.stockQuantity) || 0`.
+- **Fix display de stock en SaleModal** — `getAvailableStock` para productos genéricos usa `Math.floor(parseFloat(product.stockQuantity) || 0)` en vez de raw `product.stockQuantity` (que era string de Sequelize).
 
 ---
 
@@ -188,7 +196,7 @@ Todo dentro de una transacción.
 
 2. **Hard-delete categorías, soft-delete presentaciones** — la categoría se elimina físicamente para evitar conflicts con el índice parcial. Los productos de presentación se marcan `isActive: false` + `categoryId: null`.
 
-3. **Nullear FK en purchases al eliminar categoría** — la tabla `purchases` tiene `category_id REFERENCES egg_categories(id)` sin CASCADE. Antes de destruir la categoría, se nullea esa columna dentro de la misma transacción.
+3. **Nullear FK en purchases y products al eliminar categoría** — ambas tablas tienen `category_id REFERENCES egg_categories(id)` sin CASCADE. Los updates de limpieza de FK en `remove()` NO filtran por `tenantId` — la FK es global en PostgreSQL y cualquier referencia pendiente bloquea el `category.destroy()`.
 
 4. **Constraint UNIQUE global eliminada** — la tabla `products` y `egg_categories` solo tienen índice parcial `WHERE is_active = true`. Esto permite recrear una categoría con el mismo nombre después de eliminarla.
 
@@ -211,6 +219,7 @@ Todo dentro de una transacción.
 - **Transacciones:** toda operación con múltiples writes usa `sequelize.transaction()`
 - **Migraciones:** idempotentes en `server/api/index.js`. Usar `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`
 - **Soft delete:** `isActive: false` — nunca DELETE físico en productos/usuarios activos
+- **DECIMAL de Sequelize vienen como strings** — siempre usar `parseFloat(field) || 0` antes de operar aritméticamente. `field || 0` puede devolver el string truthy y causar concatenación (`"0.00" + 5 = "0.005"`). Aplica a `stockQuantity`, `stockUnits`, `cost`, `unitPrice`, etc.
 
 ### Frontend
 - **Dinero:** usar `CURRENCY_FORMAT` importado de `utils/formatters.js`
@@ -237,22 +246,6 @@ Conventional Commits: `feat:`, `fix:`, `refactor:`, `chore:`, `test:`, `docs:`
 
 ## Tareas en Curso
 
-### Bug activo (última sesión)
-**Bug:** Error 409 al eliminar categoría de huevos (o al recrearla con el mismo nombre).
-
-**Causa raíz identificada:** 
-- Al eliminar categoría: `purchases.category_id` tiene FK a `egg_categories` sin `ON DELETE CASCADE`. El hard-delete de la categoría fallaba con FK constraint violation.
-- Al recrear: la constraint global `UNIQUE(tenant_id, name)` no fue correctamente eliminada en algunos entornos, bloqueando la inserción de nuevas presentaciones con nombres previos.
-
-**Fixes aplicados en esta sesión:**
-1. `server/src/modules/eggCategories/eggCategories.service.js` — función `remove()`: agregado `Purchase.update({ categoryId: null })` dentro de la transacción antes de `category.destroy()`
-2. `server/api/index.js` — migración: eliminadas todas las constraints UNIQUE de `egg_categories` dinámicamente (query a `information_schema.table_constraints`)
-3. `server/src/server.js` — misma migración dinámica para entorno dev
-
-**Estado:** ✅ Fixes completos y aplicados:
-- `eggCategories.service.js`: `Purchase` importado, `remove()` nullea `categoryId` en purchases antes de destroy
-- `server/api/index.js`: migración dinámica que droppea todas las constraints UNIQUE de `egg_categories`
-- `server/src/server.js`: misma migración para entorno dev
-
-### Próximos pasos sugeridos
-- Testear el flujo completo: crear → eliminar → recrear categoría con el mismo nombre
+### Deuda pendiente
+- Testear flujo completo eliminar → recrear categoría con el mismo nombre en producción
+- El producto "Aceite" (u otro genérico comprado antes del fix) puede tener `stockQuantity = 0.01` en la BD. Corregirlo eliminando y re-registrando la compra, o editando stock directamente desde la tab "Productos Cargados".

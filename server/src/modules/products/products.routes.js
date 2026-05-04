@@ -11,6 +11,7 @@ router.get('/', authMiddleware, productsController.getAll);
 
 // Admin-only operations
 router.post('/bulk', authMiddleware, requireRole('admin'), productsController.uploadBulk);
+router.delete('/bulk', authMiddleware, requireRole('admin'), productsController.removeAllGeneric);
 router.post('/', authMiddleware, requireRole('admin'), validateProduct, productsController.create);
 router.put('/:id', authMiddleware, requireRole('admin'), validateProductUpdate, productsController.update);
 router.delete('/:id', authMiddleware, requireRole('admin'), productsController.remove);

@@ -83,6 +83,28 @@ const remove = async (req, res, next) => {
   }
 };
 
+const removeAllGeneric = async (req, res, next) => {
+  try {
+    const result = await productsService.deleteAllGenericProducts(req.tenantId);
+
+    await createAuditLog({
+      tenantId: req.tenantId || null,
+      userId: req.user.id,
+      username: req.user.username,
+      actionType: 'PRODUCTOS_GENERICOS_ELIMINADOS',
+      entity: 'products',
+      entityId: null,
+      description: `Se eliminaron ${result.deleted} productos generales (desactivación lógica)`,
+      newData: result,
+      ipAddress: req.ip,
+    });
+
+    res.json({ success: true, data: result, message: `${result.deleted} productos eliminados correctamente` });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const uploadBulk = async (req, res, next) => {
   try {
     const productsData = req.body;
@@ -111,4 +133,4 @@ const uploadBulk = async (req, res, next) => {
   }
 };
 
-module.exports = { getAll, create, update, remove, uploadBulk };
+module.exports = { getAll, create, update, remove, removeAllGeneric, uploadBulk };

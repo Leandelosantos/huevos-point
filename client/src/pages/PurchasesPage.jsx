@@ -241,6 +241,23 @@ const PurchasesPage = () => {
     }
   };
 
+  const handleDeleteAllProducts = async () => {
+    const confirmed = await showConfirmation(
+      'Eliminar todos los productos',
+      `¿Eliminar los ${genericProducts.length} producto${genericProducts.length !== 1 ? 's' : ''} cargados? Esta acción no se puede deshacer.`,
+      'Sí, eliminar todos',
+      'Cancelar'
+    );
+    if (!confirmed) return;
+    try {
+      await api.delete('/products/bulk');
+      showSuccessToast('Todos los productos eliminados correctamente');
+      fetchProducts();
+    } catch (error) {
+      showErrorAlert('Error', error.response?.data?.message || 'No se pudieron eliminar los productos');
+    }
+  };
+
   const handleDeleteProduct = async (product) => {
     const confirmed = await showConfirmation(
       'Eliminar producto',
@@ -442,31 +459,45 @@ const PurchasesPage = () => {
         {activeTab === 1 && (
           <CardContent sx={{ p: 0 }}>
             {/* Search bar */}
-            <Box sx={{ p: 3, pb: 2 }}>
-              <TextField
-                size="small"
-                placeholder="Buscar producto..."
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchRoundedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: productSearch ? (
-                    <InputAdornment position="end">
-                      <IconButton size="small" onClick={() => setProductSearch('')}>
-                        <CloseRoundedIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ) : null,
-                }}
-                sx={{ width: { xs: '100%', sm: 340 } }}
-              />
-              <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                {filteredProducts.length} de {genericProducts.length} producto{genericProducts.length !== 1 ? 's' : ''}
-              </Typography>
+            <Box sx={{ p: 3, pb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <TextField
+                  size="small"
+                  placeholder="Buscar producto..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchRoundedIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: productSearch ? (
+                      <InputAdornment position="end">
+                        <IconButton size="small" onClick={() => setProductSearch('')}>
+                          <CloseRoundedIcon fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    ) : null,
+                  }}
+                  sx={{ width: { xs: '100%', sm: 340 } }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {filteredProducts.length} de {genericProducts.length} producto{genericProducts.length !== 1 ? 's' : ''}
+                </Typography>
+              </Box>
+              {isAdmin && genericProducts.length > 0 && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  startIcon={<DeleteRoundedIcon />}
+                  onClick={handleDeleteAllProducts}
+                  sx={{ ml: 'auto' }}
+                >
+                  Eliminar todos
+                </Button>
+              )}
             </Box>
 
             <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>

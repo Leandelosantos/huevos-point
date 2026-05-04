@@ -40,4 +40,12 @@ const softDelete = async (id, tenantId, options = {}) => {
   return product.update({ isActive: false }, options);
 };
 
-module.exports = { findAllActive, findById, findByName, create, update, softDelete };
+const softDeleteAllGeneric = async (tenantId, options = {}) => {
+  const { Op } = require('sequelize');
+  return Product.update(
+    { isActive: false },
+    { where: { tenantId, categoryId: null, isActive: true }, ...options }
+  );
+};
+
+module.exports = { findAllActive, findById, findByName, create, update, softDelete, softDeleteAllGeneric };
