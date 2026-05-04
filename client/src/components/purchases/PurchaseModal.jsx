@@ -15,6 +15,7 @@ import {
   Alert,
   ToggleButtonGroup,
   ToggleButton,
+  Autocomplete,
 } from '@mui/material';
 import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
@@ -50,6 +51,8 @@ const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
   const [purchaseType, setPurchaseType] = useState('egg');
   const [eggForm, setEggForm] = useState(INIT_EGG);
   const [genericForm, setGenericForm] = useState(INIT_GENERIC);
+  const [productSearch, setProductSearch] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
   const [receiptMimeType, setReceiptMimeType] = useState(null);
@@ -60,11 +63,21 @@ const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
     if (open) {
       setEggForm(INIT_EGG);
       setGenericForm(INIT_GENERIC);
+      setProductSearch('');
+      setSelectedProduct(null);
       setReceiptData(null);
       setReceiptMimeType(null);
       setReceiptFileName('');
     }
   }, [open]);
+
+  const genericProducts = (products || []).filter((p) => !p.categoryId);
+
+  const filteredProducts = productSearch.length >= 3
+    ? genericProducts.filter((p) =>
+        p.name.toLowerCase().includes(productSearch.toLowerCase())
+      )
+    : [];
 
   const handleEggChange = (e) => {
     const { name, value } = e.target;
@@ -321,23 +334,30 @@ const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Producto"
-                  name="productId"
-                  value={genericForm.productId}
-                  onChange={handleGenericChange}
-                  required
-                >
-                  {(products || [])
-                    .filter((p) => !p.categoryId)
-                    .map((p) => (
-                      <MenuItem key={p.id} value={p.id}>
-                        {p.name}
-                      </MenuItem>
-                    ))}
-                </TextField>
+                <Autocomplete
+                  options={filteredProducts}
+                  getOptionLabel={(p) => p.name}
+                  inputValue={productSearch}
+                  value={selectedProduct}
+                  onInputChange={(_, val) => setProductSearch(val)}
+                  onChange={(_, product) => {
+                    setSelectedProduct(product);
+                    setGenericForm((prev) => ({ ...prev, productId: product?.id ?? '' }));
+                  }}
+                  noOptionsText={
+                    productSearch.length < 3
+                      ? 'Escribí al menos 3 letras para buscar'
+                      : 'Sin resultados'
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Producto"
+                      required
+                      placeholder="Buscar producto..."
+                    />
+                  )}
+                />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
