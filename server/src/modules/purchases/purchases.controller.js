@@ -104,8 +104,63 @@ const getReceipt = async (req, res, next) => {
   }
 };
 
+const updatePurchase = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const tenantId = req.tenantId;
+    const { quantity, cost, provider, purchaseDate } = req.body;
+
+    const result = await purchasesService.updatePurchase(id, tenantId, { quantity, cost, provider, purchaseDate });
+
+    await createAuditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      tenantId,
+      actionType: 'COMPRA_EDITADA',
+      entity: 'purchases',
+      entityId: parseInt(id, 10),
+      description: `Compra #${id} editada. Cantidad: ${result.oldQuantity} → ${result.newQuantity}`,
+      previousData: { quantity: result.oldQuantity },
+      newData: { quantity: result.newQuantity },
+      ipAddress: req.ip,
+    });
+
+    res.json({ success: true, message: 'Compra actualizada correctamente' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deletePurchase = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const tenantId = req.tenantId;
+
+    const result = await purchasesService.deletePurchase(id, tenantId);
+
+    await createAuditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      tenantId,
+      actionType: 'COMPRA_ELIMINADA',
+      entity: 'purchases',
+      entityId: parseInt(id, 10),
+      description: `Compra #${id} eliminada. Stock revertido.`,
+      previousData: { quantity: result.purchase.quantity, cost: result.purchase.cost },
+      newData: null,
+      ipAddress: req.ip,
+    });
+
+    res.json({ success: true, message: 'Compra eliminada y stock revertido' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createPurchase,
   getPurchases,
   getReceipt,
+  updatePurchase,
+  deletePurchase,
 };

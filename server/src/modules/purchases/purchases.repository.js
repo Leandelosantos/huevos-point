@@ -4,6 +4,25 @@ const create = async (purchaseData, transaction) => {
   return await Purchase.create(purchaseData, { transaction });
 };
 
+const findById = async (id, tenantId) => {
+  return Purchase.findOne({
+    where: { id, tenantId },
+    include: [
+      { model: Product, as: 'product', attributes: ['id', 'name', 'stockQuantity'], required: false },
+      { model: EggCategory, as: 'category', attributes: ['id', 'name', 'eggsPerCrate', 'stockUnits'], required: false },
+    ],
+  });
+};
+
+const update = async (id, data, tenantId, transaction) => {
+  const [count] = await Purchase.update(data, { where: { id, tenantId }, transaction });
+  return count;
+};
+
+const remove = async (id, tenantId, transaction) => {
+  return Purchase.destroy({ where: { id, tenantId }, transaction });
+};
+
 const findAll = async (tenantId, { limit, offset }) => {
   const { count, rows } = await Purchase.findAndCountAll({
     where: { tenantId },
@@ -53,5 +72,8 @@ const findReceiptById = async (id, tenantId) => {
 module.exports = {
   create,
   findAll,
+  findById,
+  update,
+  remove,
   findReceiptById,
 };

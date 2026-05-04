@@ -20,19 +20,24 @@ import ShoppingBagRoundedIcon from '@mui/icons-material/ShoppingBagRounded';
 import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import ExcelJS from 'exceljs';
 import dayjs from 'dayjs';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { showSuccessToast, showErrorAlert, showErrorToast } from '../utils/sweetAlert';
+import { showSuccessToast, showErrorAlert, showErrorToast, showConfirmation } from '../utils/sweetAlert';
 import PurchaseModal from '../components/purchases/PurchaseModal';
+import EditPurchaseModal from '../components/purchases/EditPurchaseModal';
 import { CURRENCY_FORMAT } from '../utils/formatters';
 
 const PurchasesPage = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin } = useAuth();
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [categoriesCache, setCategoriesCache] = useState([]);
   const [productsCache, setProductsCache] = useState([]);
   
@@ -153,6 +158,41 @@ const PurchasesPage = () => {
     }
   };
 
+  const handleEditPurchase = (purchase) => {
+    setSelectedPurchase(purchase);
+    setEditModalOpen(true);
+  };
+
+  const handleDeletePurchase = async (purchase) => {
+    const label = purchase.category?.name || purchase.product?.name || `#${purchase.id}`;
+    const confirmed = await showConfirmation(
+      'Eliminar compra',
+      `¿Eliminar la compra de ${label}? El stock asociado será revertido.`,
+      'Sí, eliminar',
+      'Cancelar'
+    );
+    if (!confirmed) return;
+    try {
+      await api.delete(`/purchases/${purchase.id}`);
+      showSuccessToast('Compra eliminada y stock revertido');
+      fetchPurchases();
+      fetchCategories();
+      fetchProducts();
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Error al eliminar la compra';
+      showErrorAlert('Error', msg);
+    }
+  };
+
+  const handleEditSuccess = () => {
+    setEditModalOpen(false);
+    setSelectedPurchase(null);
+    showSuccessToast('Compra actualizada correctamente');
+    fetchPurchases();
+    fetchCategories();
+    fetchProducts();
+  };
+
   const handlePurchaseSuccess = () => {
     setModalOpen(false);
     showSuccessToast('Compra registrada exitosamente');
@@ -226,13 +266,14 @@ const PurchasesPage = () => {
                   <TableCell align="right">Costo/Cajón</TableCell>
                   <TableCell align="right">Total Invertido</TableCell>
                   <TableCell align="center">Comprobante</TableCell>
+                  {isSuperAdmin && <TableCell align="center">Acciones</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 9 }).map((_, j) => (
+                      {Array.from({ length: isSuperAdmin ? 9 : 8 }).map((_, j) => (
                         <TableCell key={j}><Skeleton /></TableCell>
                       ))}
                     </TableRow>
@@ -309,6 +350,20 @@ const PurchasesPage = () => {
                             <Typography variant="caption" color="text.disabled">—</Typography>
                           )}
                         </TableCell>
+                        {isSuperAdmin && (
+                          <TableCell align="center">
+                            <Tooltip title="Editar">
+                              <IconButton size="small" onClick={() => handleEditPurchase(purchase)} sx={{ color: '#1565C0' }}>
+                                <EditRoundedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Eliminar">
+                              <IconButton size="small" onClick={() => handleDeletePurchase(purchase)} sx={{ color: '#C62828' }}>
+                                <DeleteRoundedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })
@@ -325,6 +380,13 @@ const PurchasesPage = () => {
         onSuccess={handlePurchaseSuccess}
         categories={categoriesCache}
         products={productsCache}
+      />
+
+      <EditPurchaseModal
+        open={editModalOpen}
+        onClose={() => { setEditModalOpen(false); setSelectedPurchase(null); }}
+        onSuccess={handleEditSuccess}
+        purchase={selectedPurchase}
       />
     </Box>
   );

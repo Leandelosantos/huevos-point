@@ -15,4 +15,8 @@ router.post('/', requireRole('admin'), validatePurchase, purchasesController.cre
 router.get('/', requireRole('admin'), purchasesController.getPurchases);
 router.get('/:id/receipt', requireRole('admin'), purchasesController.getReceipt);
 
+// Edit and delete are superadmin-only (stock reversal is destructive)
+router.put('/:id', requireRole('superadmin'), purchasesController.updatePurchase);
+router.delete('/:id', requireRole('superadmin'), purchasesController.deletePurchase);
+
 module.exports = router;

@@ -126,8 +126,103 @@ const getPurchaseReceipt = async (id, tenantId) => {
   return { receiptData: purchase.receiptData, receiptMimeType: purchase.receiptMimeType };
 };
 
+const updatePurchase = async (id, tenantId, updateData) => {
+  const { quantity, cost, provider, purchaseDate } = updateData;
+
+  const t = await sequelize.transaction();
+  try {
+    const purchase = await purchasesRepository.findById(id, tenantId);
+    if (!purchase) throw new AppError('Compra no encontrada', 404);
+
+    const oldQuantity = parseFloat(purchase.quantity);
+    const newQuantity = quantity !== undefined ? parseFloat(quantity) : oldQuantity;
+
+    if (newQuantity <= 0) throw new AppError('La cantidad debe ser mayor a 0', 400);
+
+    // Apply stock delta only if quantity changed
+    const quantityDelta = newQuantity - oldQuantity;
+
+    if (quantityDelta !== 0) {
+      if (purchase.categoryId) {
+        const category = await EggCategory.findOne({
+          where: { id: purchase.categoryId, tenantId },
+          lock: t.LOCK.UPDATE,
+          transaction: t,
+        });
+        if (!category) throw new AppError('Categoría no encontrada', 404);
+        const eggsDelta = quantityDelta * (category.eggsPerCrate || 360);
+        await category.update({ stockUnits: parseFloat(category.stockUnits) + eggsDelta }, { transaction: t });
+      } else if (purchase.productId) {
+        const product = await Product.findOne({
+          where: { id: purchase.productId, tenantId },
+          lock: t.LOCK.UPDATE,
+          transaction: t,
+        });
+        if (!product) throw new AppError('Producto no encontrado', 404);
+        await product.update({ stockQuantity: parseFloat(product.stockQuantity || 0) + quantityDelta }, { transaction: t });
+      }
+    }
+
+    const fieldsToUpdate = {};
+    if (quantity !== undefined) fieldsToUpdate.quantity = newQuantity;
+    if (cost !== undefined) fieldsToUpdate.cost = parseFloat(cost);
+    if (provider !== undefined) fieldsToUpdate.provider = provider;
+    if (purchaseDate !== undefined) fieldsToUpdate.purchaseDate = purchaseDate;
+
+    await purchasesRepository.update(id, fieldsToUpdate, tenantId, t);
+
+    await t.commit();
+    return { oldQuantity, newQuantity, quantityDelta };
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
+const deletePurchase = async (id, tenantId) => {
+  const t = await sequelize.transaction();
+  try {
+    const purchase = await purchasesRepository.findById(id, tenantId);
+    if (!purchase) throw new AppError('Compra no encontrada', 404);
+
+    const qty = parseFloat(purchase.quantity);
+
+    if (purchase.categoryId) {
+      const category = await EggCategory.findOne({
+        where: { id: purchase.categoryId, tenantId },
+        lock: t.LOCK.UPDATE,
+        transaction: t,
+      });
+      if (category) {
+        const eggsToRemove = qty * (category.eggsPerCrate || 360);
+        const newStock = Math.max(0, parseFloat(category.stockUnits) - eggsToRemove);
+        await category.update({ stockUnits: newStock }, { transaction: t });
+      }
+    } else if (purchase.productId) {
+      const product = await Product.findOne({
+        where: { id: purchase.productId, tenantId },
+        lock: t.LOCK.UPDATE,
+        transaction: t,
+      });
+      if (product) {
+        const newStock = Math.max(0, parseFloat(product.stockQuantity || 0) - qty);
+        await product.update({ stockQuantity: newStock }, { transaction: t });
+      }
+    }
+
+    await purchasesRepository.remove(id, tenantId, t);
+    await t.commit();
+    return { purchase };
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
 module.exports = {
   createPurchase,
   getPurchases,
   getPurchaseReceipt,
+  updatePurchase,
+  deletePurchase,
 };
