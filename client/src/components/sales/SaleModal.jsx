@@ -15,6 +15,7 @@ import {
   CircularProgress,
   Alert,
   Collapse,
+  Autocomplete,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
@@ -214,22 +215,35 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
                   alignItems: 'flex-start',
                 }}
               >
-                <TextField
-                  select
-                  label="Producto"
-                  value={item.productId}
-                  onChange={(e) => handleItemChange(index, 'productId', e.target.value)}
-                  size="medium"
-                >
-                  {products.map((p) => (
-                    <MenuItem key={p.id} value={p.id}>
-                      {p.name} — {CURRENCY_FORMAT.format(p.unitPrice)}{' '}
-                      <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-                        (Stock: {getAvailableStock(p)})
-                      </Typography>
-                    </MenuItem>
-                  ))}
-                </TextField>
+                <Autocomplete
+                  options={products}
+                  getOptionLabel={(p) => p.name}
+                  value={products.find((p) => p.id === item.productId) || null}
+                  onChange={(_, product) => handleItemChange(index, 'productId', product?.id || '')}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  filterOptions={(options, { inputValue }) => {
+                    if (!inputValue.trim()) return options;
+                    const lower = inputValue.toLowerCase();
+                    return options.filter((p) => p.name.toLowerCase().includes(lower));
+                  }}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Producto" size="medium" placeholder="Buscar producto..." />
+                  )}
+                  renderOption={(props, p) => {
+                    const { key, ...rest } = props;
+                    return (
+                      <li key={key} {...rest}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>{p.name}</Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                            {CURRENCY_FORMAT.format(p.unitPrice)} · Stock: {getAvailableStock(p)}
+                          </Typography>
+                        </Box>
+                      </li>
+                    );
+                  }}
+                  noOptionsText="Sin resultados"
+                />
 
                 <TextField
                   label="Cantidad"
