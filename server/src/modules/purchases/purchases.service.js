@@ -80,7 +80,7 @@ const createPurchase = async (purchaseData) => {
       }
 
       const parsedQuantity = parseFloat(quantity);
-      const previousStock = product.stockQuantity || 0;
+      const previousStock = parseFloat(product.stockQuantity) || 0;
       const newStock = previousStock + parsedQuantity;
 
       const updates = { stockQuantity: newStock };

@@ -78,7 +78,7 @@ const SaleModal = ({ open, onClose, onSuccess }) => {
     if (product.category) {
       return Math.floor(parseFloat(product.category.stockUnits) / (product.unitsPerPresentation || 1));
     }
-    return product.stockQuantity ?? 0;
+    return Math.floor(parseFloat(product.stockQuantity) || 0);
   };
 
   const getSubtotal = (item) => {
