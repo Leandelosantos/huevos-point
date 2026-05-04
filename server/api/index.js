@@ -110,14 +110,26 @@ const migrationPromise = (async () => {
         stock_units DECIMAL(12,2) NOT NULL DEFAULT 0,
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMPTZ DEFAULT now(),
-        updated_at TIMESTAMPTZ DEFAULT now(),
-        UNIQUE(tenant_id, name)
+        updated_at TIMESTAMPTZ DEFAULT now()
       )
     `);
     await sequelize.query(`CREATE INDEX IF NOT EXISTS egg_categories_tenant_idx ON egg_categories (tenant_id, is_active)`);
-    // Replace broad UNIQUE(tenant_id,name) with partial index (only active rows).
-    // Allows recreating a category with the same name after deletion.
-    await sequelize.query(`ALTER TABLE egg_categories DROP CONSTRAINT IF EXISTS egg_categories_tenant_id_name_key`);
+    // Drop any legacy global unique constraints (named constraints via ALTER TABLE)
+    const [constraints] = await sequelize.query(`
+      SELECT constraint_name FROM information_schema.table_constraints
+      WHERE table_name = 'egg_categories' AND constraint_type = 'UNIQUE'
+    `);
+    for (const { constraint_name } of constraints) {
+      if (constraint_name !== 'egg_categories_pkey') {
+        await sequelize.query(`ALTER TABLE egg_categories DROP CONSTRAINT IF EXISTS "${constraint_name}"`);
+      }
+    }
+    // Drop any legacy global unique indexes (direct CREATE UNIQUE INDEX — not found via table_constraints)
+    await sequelize.query(`DROP INDEX IF EXISTS egg_categories_name_key`);
+    await sequelize.query(`DROP INDEX IF EXISTS egg_categories_name_key1`);
+    await sequelize.query(`DROP INDEX IF EXISTS egg_categories_tenant_id_name_key`);
+    await sequelize.query(`DROP INDEX IF EXISTS egg_categories_tenant_name_unique`);
+    // Create partial unique index (only active rows). Allows recreating a category with the same name after deletion.
     await sequelize.query(`CREATE UNIQUE INDEX IF NOT EXISTS egg_categories_active_name_uidx ON egg_categories(tenant_id, name) WHERE is_active = true`);
     // Hard-delete orphaned inactive categories (left over from old soft-delete logic)
     await sequelize.query(`DELETE FROM egg_categories WHERE is_active = false`);

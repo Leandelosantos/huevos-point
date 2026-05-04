@@ -1,5 +1,5 @@
 const sequelize = require('../../config/database');
-const { EggCategory, Product } = require('../../models');
+const { EggCategory, Product, Purchase } = require('../../models');
 const AppError = require('../../utils/AppError');
 
 const EGGS_PER_CRATE = 360; // default (non-Jumbo)
@@ -126,11 +126,16 @@ const remove = async (id, tenantId) => {
   if (!category) throw new AppError('Categoría no encontrada', 404);
 
   await sequelize.transaction(async (t) => {
-    // Soft-delete presentations and clear FK so the category row can be hard-deleted
-    // (the UNIQUE constraint on (tenant_id, name) would block future recreation otherwise)
+    // Null out FK in purchases so the category row can be hard-deleted (no ON DELETE CASCADE).
+    // No tenantId filter: the FK constraint is global, so all references must be cleared.
+    await Purchase.update(
+      { categoryId: null },
+      { where: { categoryId: id }, transaction: t }
+    );
+    // Soft-delete presentations and clear FK (same reason — no tenantId filter).
     await Product.update(
       { isActive: false, categoryId: null },
-      { where: { categoryId: id, tenantId }, transaction: t }
+      { where: { categoryId: id }, transaction: t }
     );
     await category.destroy({ transaction: t });
   });

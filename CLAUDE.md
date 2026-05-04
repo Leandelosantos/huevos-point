@@ -113,3 +113,29 @@ Cualquier endpoint nuevo en `/api/public/v1` debe sumar tests al suite existente
 - SRS funcional: [srs-huevos-point.md](srs-huevos-point.md)
 - Plan SaaS: [docs/saas-plan-v4.md](docs/saas-plan-v4.md)
 - Reglas de desarrollo: [.agents/rules/buenas-practicas-desarrollo.md](.agents/rules/buenas-practicas-desarrollo.md)
+
+---
+
+## SISTEMA DE MEMORIA
+
+### Archivo de memoria
+El proyecto usa `PROJECT_MEMORY.md` (raíz del repo) como memoria persistente entre sesiones.
+
+### Reglas obligatorias
+
+1. **Al iniciar sesión o después de compactar**: leer `PROJECT_MEMORY.md` antes de cualquier otra acción. No leer archivos del codebase hasta verificar que la información necesaria no está ya en la memoria.
+
+2. **Prioridad de fuentes**:
+   - Primera fuente: `PROJECT_MEMORY.md`
+   - Segunda fuente: archivos del codebase (solo si la memoria no cubre lo requerido)
+
+3. **Actualizar la memoria**: al finalizar cualquier tarea significativa, actualizá `PROJECT_MEMORY.md` con:
+   - Cambios en arquitectura o stack
+   - Nuevos módulos o archivos relevantes creados
+   - Decisiones técnicas tomadas
+   - Estado actualizado de tareas en curso
+   - Cualquier convención nueva establecida
+
+4. **Post-compactación**: inmediatamente después de que el contexto sea compactado, el primer tool call debe ser leer `PROJECT_MEMORY.md`. No pedir confirmación, ejecutarlo directamente.
+
+5. **Criterio para leer el codebase**: solo accedé a archivos específicos del proyecto si la tarea requiere ver implementación detallada que no puede inferirse desde la memoria.
