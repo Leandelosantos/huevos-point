@@ -26,7 +26,7 @@ const findAll = async (tenantId, { limit, offset }) => {
       {
         model: EggCategory,
         as: 'category',
-        attributes: ['id', 'name'],
+        attributes: ['id', 'name', 'eggsPerCrate'],
         required: false,
       },
       {

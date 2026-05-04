@@ -249,7 +249,8 @@ const PurchasesPage = () => {
                   purchases.map((purchase) => {
                     const qty = parseFloat(purchase.quantity) || 0;
                     const isEgg = Boolean(purchase.categoryId);
-                    const eggs = isEgg ? qty * 360 : null;
+                    const eggsPerCrate = purchase.category?.eggsPerCrate || 360;
+                    const eggs = isEgg ? qty * eggsPerCrate : null;
                     return (
                       <TableRow key={purchase.id} hover>
                         <TableCell>
