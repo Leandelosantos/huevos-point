@@ -4,6 +4,105 @@ const { EggCategory, Product } = require('../../models');
 const AppError = require('../../utils/AppError');
 // EGGS_PER_CRATE not imported; use category.eggsPerCrate (per-category config)
 
+const createPurchaseBulk = async ({ items, tenantId, userId, receiptData, receiptMimeType }) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new AppError('Debe incluir al menos un ítem en la compra', 400);
+  }
+
+  const t = await sequelize.transaction();
+  const results = [];
+
+  try {
+    for (const item of items) {
+      const { categoryId, productId, quantity, cost, price, provider, purchaseDate } = item;
+
+      if (!quantity || parseFloat(quantity) <= 0) {
+        throw new AppError('La cantidad debe ser mayor a 0', 400);
+      }
+      if (!cost || parseFloat(cost) <= 0) {
+        throw new AppError('El costo es obligatorio', 400);
+      }
+      if (!purchaseDate) {
+        throw new AppError('La fecha de compra es obligatoria', 400);
+      }
+
+      if (categoryId) {
+        const category = await EggCategory.findOne({
+          where: { id: categoryId, tenantId, isActive: true },
+          lock: t.LOCK.UPDATE,
+          transaction: t,
+        });
+        if (!category) throw new AppError(`Categoría #${categoryId} no encontrada o no pertenece a la sucursal`, 404);
+
+        const parsedQuantity = parseFloat(quantity);
+        const eggsAdded = parsedQuantity * (category.eggsPerCrate || 360);
+        const previousStock = parseFloat(category.stockUnits) || 0;
+        const newStock = previousStock + eggsAdded;
+
+        const purchase = await purchasesRepository.create({
+          tenantId,
+          categoryId,
+          productId: null,
+          userId,
+          quantity: parsedQuantity,
+          cost: parseFloat(cost),
+          price: null,
+          marginAmount: null,
+          provider: provider || null,
+          purchaseDate,
+          receiptData: receiptData || null,
+          receiptMimeType: receiptMimeType || null,
+        }, t);
+
+        await category.update({ stockUnits: newStock }, { transaction: t });
+        results.push({ purchaseId: purchase.id, categoryName: category.name, eggsAdded, previousStock, newStock });
+
+      } else if (productId) {
+        const product = await Product.findOne({
+          where: { id: productId, tenantId, isActive: true },
+          lock: t.LOCK.UPDATE,
+          transaction: t,
+        });
+        if (!product) throw new AppError(`Producto #${productId} no encontrado o no pertenece a la sucursal`, 404);
+
+        const parsedQuantity = parseFloat(quantity);
+        const previousStock = parseFloat(product.stockQuantity) || 0;
+        const newStock = previousStock + parsedQuantity;
+
+        const updates = { stockQuantity: newStock };
+        if (price && parseFloat(price) > 0) updates.unitPrice = parseFloat(price);
+        await product.update(updates, { transaction: t });
+
+        const purchase = await purchasesRepository.create({
+          tenantId,
+          categoryId: null,
+          productId,
+          userId,
+          quantity: parsedQuantity,
+          cost: parseFloat(cost),
+          price: price ? parseFloat(price) : null,
+          marginAmount: null,
+          provider: provider || null,
+          purchaseDate,
+          receiptData: receiptData || null,
+          receiptMimeType: receiptMimeType || null,
+        }, t);
+
+        results.push({ purchaseId: purchase.id, productName: product.name, previousStock, newStock });
+
+      } else {
+        throw new AppError('Cada ítem debe tener categoryId o productId', 400);
+      }
+    }
+
+    await t.commit();
+    return results;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
 const createPurchase = async (purchaseData) => {
   const {
     tenantId,
@@ -220,6 +319,7 @@ const deletePurchase = async (id, tenantId) => {
 };
 
 module.exports = {
+  createPurchaseBulk,
   createPurchase,
   getPurchases,
   getPurchaseReceipt,

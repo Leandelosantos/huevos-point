@@ -11,6 +11,7 @@ router.use(authMiddleware);
 router.use(tenantMiddleware);
 
 // Only admins and superadmins can record or see purchases (since it affects cost/margin, usually restricted to admin/owner)
+router.post('/bulk', requireRole('admin'), purchasesController.createBulk);
 router.post('/', requireRole('admin'), validatePurchase, purchasesController.createPurchase);
 router.get('/', requireRole('admin'), purchasesController.getPurchases);
 router.get('/:id/receipt', requireRole('admin'), purchasesController.getReceipt);

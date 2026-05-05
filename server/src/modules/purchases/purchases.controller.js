@@ -2,6 +2,50 @@ const purchasesService = require('./purchases.service');
 const AppError = require('../../utils/AppError');
 const { createAuditLog } = require('../../utils/auditLogger');
 
+const createBulk = async (req, res, next) => {
+  try {
+    const { items, receiptData, receiptMimeType } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new AppError('Debe incluir al menos un ítem en la compra', 400);
+    }
+
+    const results = await purchasesService.createPurchaseBulk({
+      items,
+      tenantId: req.tenantId,
+      userId: req.user.id,
+      receiptData,
+      receiptMimeType,
+    });
+
+    const descriptions = results.map((r) =>
+      r.categoryName
+        ? `${r.categoryName}: +${r.eggsAdded} huevos`
+        : `${r.productName}: stock ${r.previousStock} → ${r.newStock}`
+    );
+
+    await createAuditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      tenantId: req.tenantId,
+      actionType: 'COMPRA_REGISTRADA',
+      entity: 'purchases',
+      entityId: null,
+      description: `Compra lote (${results.length} ítem${results.length !== 1 ? 's' : ''}): ${descriptions.join(' | ')}`,
+      newData: { count: results.length },
+      ipAddress: req.ip,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: results,
+      message: `${results.length} compra${results.length !== 1 ? 's' : ''} registrada${results.length !== 1 ? 's' : ''} exitosamente`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const createPurchase = async (req, res, next) => {
   try {
     const {
@@ -158,6 +202,7 @@ const deletePurchase = async (req, res, next) => {
 };
 
 module.exports = {
+  createBulk,
   createPurchase,
   getPurchases,
   getReceipt,

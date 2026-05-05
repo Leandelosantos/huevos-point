@@ -16,43 +16,39 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Autocomplete,
+  Divider,
+  Tooltip,
 } from '@mui/material';
 import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
 import EggRoundedIcon from '@mui/icons-material/EggRounded';
 import InventoryRoundedIcon from '@mui/icons-material/InventoryRounded';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import dayjs from 'dayjs';
 import api from '../../services/api';
 import { showErrorAlert } from '../../utils/sweetAlert';
 
 const DEFAULT_EGGS_PER_CRATE = 360;
+const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
 
-const INIT_EGG = {
-  purchaseDate: dayjs().format('YYYY-MM-DD'),
-  categoryId: '',
-  quantity: '',
-  cost: '',
-  provider: '',
-};
-
-const INIT_GENERIC = {
-  purchaseDate: dayjs().format('YYYY-MM-DD'),
+const EMPTY_EGG_ITEM = { categoryId: '', quantity: '', cost: '', provider: '' };
+const EMPTY_GENERIC_ITEM = {
   productId: '',
+  productSearch: '',
+  selectedProduct: null,
   quantity: '',
   cost: '',
   price: '',
   provider: '',
 };
 
-const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
-
 const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
   const [purchaseType, setPurchaseType] = useState('egg');
-  const [eggForm, setEggForm] = useState(INIT_EGG);
-  const [genericForm, setGenericForm] = useState(INIT_GENERIC);
-  const [productSearch, setProductSearch] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [purchaseDate, setPurchaseDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [eggItems, setEggItems] = useState([{ ...EMPTY_EGG_ITEM }]);
+  const [genericItems, setGenericItems] = useState([{ ...EMPTY_GENERIC_ITEM }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [receiptData, setReceiptData] = useState(null);
   const [receiptMimeType, setReceiptMimeType] = useState(null);
@@ -61,48 +57,62 @@ const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
 
   useEffect(() => {
     if (open) {
-      setEggForm(INIT_EGG);
-      setGenericForm(INIT_GENERIC);
-      setProductSearch('');
-      setSelectedProduct(null);
+      setPurchaseDate(dayjs().format('YYYY-MM-DD'));
+      setEggItems([{ ...EMPTY_EGG_ITEM }]);
+      setGenericItems([{ ...EMPTY_GENERIC_ITEM }]);
       setReceiptData(null);
       setReceiptMimeType(null);
       setReceiptFileName('');
     }
   }, [open]);
 
-  const genericProducts = (products || []).filter((p) => !p.categoryId);
+  const genericProductsList = (products || []).filter((p) => !p.categoryId);
 
-  const filteredProducts = productSearch.length >= 3
-    ? genericProducts.filter((p) =>
-        p.name.toLowerCase().includes(productSearch.toLowerCase())
-      )
-    : [];
-
-  const handleEggChange = (e) => {
-    const { name, value } = e.target;
-    setEggForm((prev) => ({ ...prev, [name]: value }));
+  // ── Egg item handlers ─────────────────────────────────────────────────────
+  const handleEggItemChange = (index, field, value) => {
+    setEggItems((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
-  const handleGenericChange = (e) => {
-    const { name, value } = e.target;
-    setGenericForm((prev) => ({ ...prev, [name]: value }));
+  const addEggItem = () => setEggItems((prev) => [...prev, { ...EMPTY_EGG_ITEM }]);
+  const removeEggItem = (index) => setEggItems((prev) => prev.filter((_, i) => i !== index));
+
+  // ── Generic item handlers ─────────────────────────────────────────────────
+  const handleGenericItemChange = (index, field, value) => {
+    setGenericItems((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
-  const selectedCategory = (categories || []).find((c) => c.id === eggForm.categoryId || c.id === parseInt(eggForm.categoryId, 10));
-  const eggsPerCrate = selectedCategory?.eggsPerCrate || DEFAULT_EGGS_PER_CRATE;
-  const eggsEquivalent = parseFloat(eggForm.quantity || 0) * eggsPerCrate;
+  const handleGenericProductSelect = (index, product) => {
+    setGenericItems((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        selectedProduct: product,
+        productId: product?.id ?? '',
+      };
+      return updated;
+    });
+  };
 
+  const addGenericItem = () => setGenericItems((prev) => [...prev, { ...EMPTY_GENERIC_ITEM }]);
+  const removeGenericItem = (index) => setGenericItems((prev) => prev.filter((_, i) => i !== index));
+
+  // ── Receipt handlers ──────────────────────────────────────────────────────
   const handleReceiptChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     e.target.value = '';
-
     if (file.size > MAX_FILE_BYTES) {
       showErrorAlert('Archivo demasiado grande', 'El comprobante no puede superar los 2 MB.');
       return;
     }
-
     const reader = new FileReader();
     reader.onload = () => {
       const [header, base64] = reader.result.split(',');
@@ -111,9 +121,7 @@ const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
       setReceiptMimeType(mime);
       setReceiptFileName(file.name);
     };
-    reader.onerror = () => {
-      showErrorAlert('Error', 'No se pudo leer el archivo. Intente nuevamente.');
-    };
+    reader.onerror = () => showErrorAlert('Error', 'No se pudo leer el archivo. Intente nuevamente.');
     reader.readAsDataURL(file);
   };
 
@@ -123,38 +131,42 @@ const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
     setReceiptFileName('');
   };
 
-  const isEggValid = eggForm.categoryId && eggForm.quantity && eggForm.cost;
-  const isGenericValid = genericForm.productId && genericForm.quantity && genericForm.cost;
+  // ── Validation ────────────────────────────────────────────────────────────
+  const isEggValid = eggItems.every((item) => item.categoryId && item.quantity && item.cost);
+  const isGenericValid = genericItems.every((item) => item.productId && item.quantity && item.cost);
+  const isValid = purchaseType === 'egg' ? isEggValid : isGenericValid;
 
+  const activeItems = purchaseType === 'egg' ? eggItems : genericItems;
+
+  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
-
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
+      const items =
+        purchaseType === 'egg'
+          ? eggItems.map((item) => ({
+              categoryId: parseInt(item.categoryId, 10),
+              quantity: parseFloat(item.quantity),
+              cost: parseFloat(item.cost),
+              provider: item.provider || undefined,
+              purchaseDate,
+            }))
+          : genericItems.map((item) => ({
+              productId: parseInt(item.productId, 10),
+              quantity: parseFloat(item.quantity),
+              cost: parseFloat(item.cost),
+              price: item.price ? parseFloat(item.price) : undefined,
+              provider: item.provider || undefined,
+              purchaseDate,
+            }));
 
-      if (purchaseType === 'egg') {
-        await api.post('/purchases', {
-          categoryId: parseInt(eggForm.categoryId, 10),
-          quantity: parseFloat(eggForm.quantity),
-          cost: parseFloat(eggForm.cost),
-          provider: eggForm.provider || undefined,
-          purchaseDate: eggForm.purchaseDate,
-          receiptData: receiptData || null,
-          receiptMimeType: receiptMimeType || null,
-        });
-      } else {
-        await api.post('/purchases', {
-          productId: parseInt(genericForm.productId, 10),
-          quantity: parseFloat(genericForm.quantity),
-          cost: parseFloat(genericForm.cost),
-          price: genericForm.price ? parseFloat(genericForm.price) : undefined,
-          provider: genericForm.provider || undefined,
-          purchaseDate: genericForm.purchaseDate,
-          receiptData: receiptData || null,
-          receiptMimeType: receiptMimeType || null,
-        });
-      }
+      await api.post('/purchases/bulk', {
+        items,
+        receiptData: receiptData || null,
+        receiptMimeType: receiptMimeType || null,
+      });
 
       onSuccess();
     } catch (error) {
@@ -165,8 +177,9 @@ const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
     }
   };
 
+  // ── Receipt section ───────────────────────────────────────────────────────
   const receiptSection = (
-    <Grid item xs={12}>
+    <Box sx={{ mt: 2.5 }}>
       <input
         type="file"
         accept=".pdf,.jpg,.jpeg,.png"
@@ -213,19 +226,17 @@ const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
           Adjuntar comprobante (PDF, JPG, PNG — opcional, máx. 2 MB)
         </Button>
       )}
-    </Grid>
+    </Box>
   );
 
   return (
-    <Dialog open={open} onClose={!isSubmitting ? onClose : undefined} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, color: '#2D6A4F' }}>
-        Registrar Nueva Compra
-      </DialogTitle>
+    <Dialog open={open} onClose={!isSubmitting ? onClose : undefined} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ fontWeight: 800, color: '#2D6A4F' }}>Registrar Nueva Compra</DialogTitle>
 
       <form onSubmit={handleSubmit}>
         <DialogContent dividers>
           {/* Type toggle */}
-          <Box sx={{ mb: 2.5, display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
             <ToggleButtonGroup
               value={purchaseType}
               exclusive
@@ -243,173 +254,237 @@ const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
             </ToggleButtonGroup>
           </Box>
 
-          {purchaseType === 'egg' ? (
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Fecha de compra"
-                  name="purchaseDate"
-                  type="date"
-                  value={eggForm.purchaseDate}
-                  onChange={handleEggChange}
-                  required
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Categoría"
-                  name="categoryId"
-                  value={eggForm.categoryId}
-                  onChange={handleEggChange}
-                  required
-                >
-                  {(categories || []).map((c) => (
-                    <MenuItem key={c.id} value={c.id}>
-                      {c.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Cantidad (cajones)"
-                  name="quantity"
-                  type="number"
-                  value={eggForm.quantity}
-                  onChange={handleEggChange}
-                  required
-                  inputProps={{ min: 0.5, step: 0.5 }}
-                  helperText="Soporta medios cajones: 0.5, 1, 1.5..."
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Proveedor"
-                  name="provider"
-                  value={eggForm.provider}
-                  onChange={handleEggChange}
-                  placeholder="Opcional"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Costo por cajón"
-                  name="cost"
-                  type="number"
-                  value={eggForm.cost}
-                  onChange={handleEggChange}
-                  required
-                  InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
-                  inputProps={{ min: 0, step: '0.01' }}
-                />
-              </Grid>
-              {eggsEquivalent > 0 && (
-                <Grid item xs={12}>
-                  <Alert severity="info" icon={false} sx={{ fontWeight: 600 }}>
-                    Equivale a <strong>{eggsEquivalent}</strong> huevos ({(eggsEquivalent / (eggsPerCrate / 12)).toFixed(0)} maples)
-                  </Alert>
-                </Grid>
-              )}
-              {receiptSection}
-            </Grid>
-          ) : (
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Fecha de compra"
-                  name="purchaseDate"
-                  type="date"
-                  value={genericForm.purchaseDate}
-                  onChange={handleGenericChange}
-                  required
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Autocomplete
-                  options={filteredProducts}
-                  getOptionLabel={(p) => p.name}
-                  inputValue={productSearch}
-                  value={selectedProduct}
-                  onInputChange={(_, val) => setProductSearch(val)}
-                  onChange={(_, product) => {
-                    setSelectedProduct(product);
-                    setGenericForm((prev) => ({ ...prev, productId: product?.id ?? '' }));
-                  }}
-                  noOptionsText={
-                    productSearch.length < 3
-                      ? 'Escribí al menos 3 letras para buscar'
-                      : 'Sin resultados'
-                  }
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Producto"
-                      required
-                      placeholder="Buscar producto..."
-                    />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Cantidad"
-                  name="quantity"
-                  type="number"
-                  value={genericForm.quantity}
-                  onChange={handleGenericChange}
-                  required
-                  inputProps={{ min: 1, step: 1 }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Proveedor"
-                  name="provider"
-                  value={genericForm.provider}
-                  onChange={handleGenericChange}
-                  placeholder="Opcional"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Costo por unidad"
-                  name="cost"
-                  type="number"
-                  value={genericForm.cost}
-                  onChange={handleGenericChange}
-                  required
-                  InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
-                  inputProps={{ min: 0, step: '0.01' }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Precio de venta (opcional)"
-                  name="price"
-                  type="number"
-                  value={genericForm.price}
-                  onChange={handleGenericChange}
-                  InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
-                  inputProps={{ min: 0, step: '0.01' }}
-                  helperText="Actualiza el precio del producto"
-                />
-              </Grid>
-              {receiptSection}
-            </Grid>
+          {/* Shared date */}
+          <TextField
+            fullWidth
+            label="Fecha de compra"
+            type="date"
+            value={purchaseDate}
+            onChange={(e) => setPurchaseDate(e.target.value)}
+            required
+            InputLabelProps={{ shrink: true }}
+            sx={{ mb: 3 }}
+          />
+
+          {/* ── Egg items ─────────────────────────────────────────────────── */}
+          {purchaseType === 'egg' && (
+            <>
+              {eggItems.map((item, index) => {
+                const selectedCategory = (categories || []).find(
+                  (c) => c.id === item.categoryId || c.id === parseInt(item.categoryId, 10)
+                );
+                const eggsPerCrate = selectedCategory?.eggsPerCrate || DEFAULT_EGGS_PER_CRATE;
+                const eggsEquivalent = parseFloat(item.quantity || 0) * eggsPerCrate;
+
+                return (
+                  <Box key={index}>
+                    {index > 0 && <Divider sx={{ my: 2.5 }} />}
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                      <Grid container spacing={2} sx={{ flex: 1 }}>
+                        <Grid item xs={12} sm={5}>
+                          <TextField
+                            select
+                            fullWidth
+                            label="Categoría"
+                            value={item.categoryId}
+                            onChange={(e) => handleEggItemChange(index, 'categoryId', e.target.value)}
+                            required
+                          >
+                            {(categories || []).map((c) => (
+                              <MenuItem key={c.id} value={c.id}>
+                                {c.name}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <TextField
+                            fullWidth
+                            label="Cajones"
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => handleEggItemChange(index, 'quantity', e.target.value)}
+                            required
+                            inputProps={{ min: 0.5, step: 0.5 }}
+                            helperText="Ej: 0.5, 1, 1.5"
+                          />
+                        </Grid>
+                        <Grid item xs={6} sm={4}>
+                          <TextField
+                            fullWidth
+                            label="Costo por cajón"
+                            type="number"
+                            value={item.cost}
+                            onChange={(e) => handleEggItemChange(index, 'cost', e.target.value)}
+                            required
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                            }}
+                            inputProps={{ min: 0, step: '0.01' }}
+                          />
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            label="Proveedor"
+                            value={item.provider}
+                            onChange={(e) => handleEggItemChange(index, 'provider', e.target.value)}
+                            placeholder="Opcional"
+                            size="small"
+                          />
+                        </Grid>
+                        {eggsEquivalent > 0 && (
+                          <Grid item xs={12}>
+                            <Alert severity="info" icon={false} sx={{ py: 0.5, fontWeight: 600 }}>
+                              Equivale a <strong>{eggsEquivalent}</strong> huevos (
+                              {(eggsEquivalent / (eggsPerCrate / 12)).toFixed(0)} maples)
+                            </Alert>
+                          </Grid>
+                        )}
+                      </Grid>
+                      {eggItems.length > 1 && (
+                        <Tooltip title="Quitar">
+                          <IconButton
+                            onClick={() => removeEggItem(index)}
+                            size="small"
+                            sx={{ mt: 0.5, flexShrink: 0, color: 'error.light', '&:hover': { color: 'error.main' } }}
+                          >
+                            <DeleteRoundedIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
+                  </Box>
+                );
+              })}
+
+              <Button
+                startIcon={<AddRoundedIcon />}
+                onClick={addEggItem}
+                size="small"
+                sx={{ mt: 2, color: '#2D6A4F' }}
+              >
+                Agregar categoría
+              </Button>
+            </>
           )}
+
+          {/* ── Generic items ──────────────────────────────────────────────── */}
+          {purchaseType === 'generic' && (
+            <>
+              {genericItems.map((item, index) => {
+                const filteredProducts =
+                  item.productSearch.length >= 3
+                    ? genericProductsList.filter((p) =>
+                        p.name.toLowerCase().includes(item.productSearch.toLowerCase())
+                      )
+                    : [];
+
+                return (
+                  <Box key={index}>
+                    {index > 0 && <Divider sx={{ my: 2.5 }} />}
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                      <Grid container spacing={2} sx={{ flex: 1 }}>
+                        <Grid item xs={12} sm={6}>
+                          <Autocomplete
+                            options={filteredProducts}
+                            getOptionLabel={(p) => p.name}
+                            inputValue={item.productSearch}
+                            value={item.selectedProduct}
+                            onInputChange={(_, val) => handleGenericItemChange(index, 'productSearch', val)}
+                            onChange={(_, product) => handleGenericProductSelect(index, product)}
+                            noOptionsText={
+                              item.productSearch.length < 3
+                                ? 'Escribí al menos 3 letras para buscar'
+                                : 'Sin resultados'
+                            }
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Producto"
+                                required
+                                placeholder="Buscar producto..."
+                              />
+                            )}
+                          />
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <TextField
+                            fullWidth
+                            label="Cantidad"
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => handleGenericItemChange(index, 'quantity', e.target.value)}
+                            required
+                            inputProps={{ min: 1, step: 1 }}
+                          />
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <TextField
+                            fullWidth
+                            label="Costo/unidad"
+                            type="number"
+                            value={item.cost}
+                            onChange={(e) => handleGenericItemChange(index, 'cost', e.target.value)}
+                            required
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                            }}
+                            inputProps={{ min: 0, step: '0.01' }}
+                          />
+                        </Grid>
+                        <Grid item xs={6} sm={4}>
+                          <TextField
+                            fullWidth
+                            label="Precio de venta (opcional)"
+                            type="number"
+                            value={item.price}
+                            onChange={(e) => handleGenericItemChange(index, 'price', e.target.value)}
+                            InputProps={{
+                              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                            }}
+                            inputProps={{ min: 0, step: '0.01' }}
+                            helperText="Actualiza el precio del producto"
+                          />
+                        </Grid>
+                        <Grid item xs={6} sm={8}>
+                          <TextField
+                            fullWidth
+                            label="Proveedor"
+                            value={item.provider}
+                            onChange={(e) => handleGenericItemChange(index, 'provider', e.target.value)}
+                            placeholder="Opcional"
+                          />
+                        </Grid>
+                      </Grid>
+                      {genericItems.length > 1 && (
+                        <Tooltip title="Quitar">
+                          <IconButton
+                            onClick={() => removeGenericItem(index)}
+                            size="small"
+                            sx={{ mt: 0.5, flexShrink: 0, color: 'error.light', '&:hover': { color: 'error.main' } }}
+                          >
+                            <DeleteRoundedIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
+                  </Box>
+                );
+              })}
+
+              <Button
+                startIcon={<AddRoundedIcon />}
+                onClick={addGenericItem}
+                size="small"
+                sx={{ mt: 2, color: '#2D6A4F' }}
+              >
+                Agregar producto
+              </Button>
+            </>
+          )}
+
+          {receiptSection}
         </DialogContent>
 
         <DialogActions sx={{ p: 2 }}>
@@ -419,13 +494,15 @@ const PurchaseModal = ({ open, onClose, onSuccess, categories, products }) => {
           <Button
             type="submit"
             variant="contained"
-            disabled={isSubmitting || (purchaseType === 'egg' ? !isEggValid : !isGenericValid)}
+            disabled={isSubmitting || !isValid}
             sx={{
               background: 'linear-gradient(135deg, #2D6A4F 0%, #40916C 100%)',
               '&:hover': { background: 'linear-gradient(135deg, #1B4332 0%, #2D6A4F 100%)' },
             }}
           >
-            {isSubmitting ? 'Registrando...' : 'Confirmar Compra'}
+            {isSubmitting
+              ? 'Registrando...'
+              : `Confirmar Compra${activeItems.length > 1 ? ` (${activeItems.length} ítems)` : ''}`}
           </Button>
         </DialogActions>
       </form>
