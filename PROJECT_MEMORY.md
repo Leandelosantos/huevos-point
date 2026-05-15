@@ -208,6 +208,20 @@ Todo dentro de una transacción.
   - También se agrega `currentMonthAll` al endpoint `/metrics` original (reutiliza el mismo service).
   - **Collapse en ProductsBarChartCard** — si hay más de 5 productos, los primeros 5 son siempre visibles. El resto se muestra/oculta con `Collapse` MUI y botón "Ver todos (N más)" / "Ver menos" con `ExpandMoreRoundedIcon`. `expanded` se resetea a `false` al cambiar de mes. Extracción de sub-componente `ProductBar`.
 
+- **Método de pago renombrado** — "Mercado Pago" → "Mercado Pago - Posnet" en `SaleModal.jsx` (`PAYMENT_METHODS`) y `DashboardPage.jsx` (`PAYMENT_COLORS`).
+
+- **Guardar Tema — eliminado** — `ConfigPage.jsx`: botón "Guardar tema" removido. `handleSelectTheme` ahora guarda automáticamente vía `PUT /tenants/current` al hacer click. Si falla, revierte el preview. Removidos: `savingTheme` state, `handleSaveTheme()`, `CircularProgress` import.
+
+- **Alerta de bajo stock: umbral 30 → 3** — `metrics.service.js` `LOW_STOCK_THRESHOLD = 3`. Texto en `MetricsPage.jsx` actualizado: "Menos de 3 unidades".
+
+- **Nuevo tema "Huevos Point"** — `client/src/theme/themes.js`:
+  - `primary`: `#004aad` (azul profundo) → drives buttons, card borders, focused inputs, table headers
+  - `secondary`: `#fd904a` (naranja) → accent, chips
+  - `background.default`: `#fff2d9` (crema cálido — `#ff2d9` original era hex inválido de 5 chars)
+  - `sidebar.bg`: gradiente `#003080 → #004aad`
+  - `sidebar.accent` + `sidebar.avatar`: `#fd904a` (naranja — íconos activos, avatar)
+  - `sidebar.chip`: `#fff2d9` bg / `#004aad` texto
+
 ### Recientemente implementado (sesión 2026-05-14 — parte 2: escalabilidad + WhatsApp)
 
 - **Pool DB aumentado** — `server/src/config/database.js`: `pool.max` de 5 → 20. Pendiente del usuario: migrar Supabase connection string a Transaction Pooler (puerto 6543).

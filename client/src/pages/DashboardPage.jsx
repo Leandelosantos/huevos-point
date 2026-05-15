@@ -134,7 +134,7 @@ const DashboardPage = () => {
         'Efectivo':     { bg: 'FF808080', fg: 'FFFFFFFF' },
         'Cuenta DNI':   { bg: 'FF375623', fg: 'FFFFFFFF' },
         'Transferencia':{ bg: 'FF7030A0', fg: 'FFFFFFFF' },
-        'Mercado Pago': { bg: 'FFFFCC00', fg: 'FF000000' },
+        'Mercado Pago - Posnet': { bg: 'FFFFCC00', fg: 'FF000000' },
         'Rappi':        { bg: 'FFE26B0A', fg: 'FF000000' },
       };
       const DEFAULT_PAYMENT_COLOR = { bg: 'FF2E75B6', fg: 'FFFFFFFF' };

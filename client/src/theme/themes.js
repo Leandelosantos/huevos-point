@@ -87,6 +87,24 @@ export const THEMES = {
       avatar: '#78909C',
     },
   },
+  // #ff2d9 en la especificación original es #fff2d9 (crema cálido — 5 dígitos inválido → 6 dígitos)
+  'huevos-point': {
+    id: 'huevos-point',
+    label: 'Huevos Point',
+    description: 'El tema oficial de la marca. Azul profundo, naranja vibrante y fondo crema.',
+    preview: ['#004aad', '#fd904a', '#fff2d9'],
+    palette: {
+      primary: { main: '#004aad', light: '#3373d4', dark: '#003080', contrastText: '#FFFFFF' },
+      secondary: { main: '#fd904a', light: '#ffb07c', dark: '#e07330', contrastText: '#FFFFFF' },
+      background: { default: '#fff2d9', paper: '#FFFFFF' },
+    },
+    sidebar: {
+      bg: 'linear-gradient(180deg, #003080 0%, #004aad 100%)',
+      chip: { bg: '#fff2d9', color: '#004aad' },
+      accent: '#fd904a',
+      avatar: '#fd904a',
+    },
+  },
 };
 
 export const DEFAULT_THEME_ID = 'verde-bosque';

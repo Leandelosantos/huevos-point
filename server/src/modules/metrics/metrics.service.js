@@ -2,7 +2,7 @@ const { Op } = require('sequelize');
 const { Product, SaleItem, Sale, Expense } = require('../../models');
 const sequelize = require('../../config/database');
 
-const LOW_STOCK_THRESHOLD = 30;
+const LOW_STOCK_THRESHOLD = 3;
 
 class MetricsService {
   async getTopProductsForMonth(startDate, endDate, tenantId) {

@@ -608,7 +608,7 @@ const MetricsPage = () => {
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
                 <WarningAmberRoundedIcon sx={{ color: '#E63946' }} />
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>Alerta de Stock (Menos de 30 unidades)</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>Alerta de Stock (Menos de 3 unidades)</Typography>
               </Box>
               {loading ? (
                 <Skeleton variant="rectangular" height={150} sx={{ borderRadius: 2 }} />

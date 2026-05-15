@@ -8,7 +8,6 @@ import {
   Button,
   Grid,
   Tooltip,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -97,7 +96,6 @@ const ConfigPage = () => {
   const { user, activeTenant, isAdmin, isSuperAdmin, updateActiveTenant, addTenantToUser, removeTenantFromUser, switchTenant } = useAuth();
   const { themeId, applyTheme } = useAppTheme();
 
-  const [savingTheme, setSavingTheme] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState(themeId);
 
   // Formulario de editar nombre de sucursal
@@ -131,25 +129,16 @@ const ConfigPage = () => {
     setSelectedTheme(activeTenant?.theme || themeId);
   }, [activeTenant, themeId, resetEdit]);
 
-  // Preview instantáneo al seleccionar un tema (no guarda aún)
-  const handleSelectTheme = (id) => {
+  const handleSelectTheme = async (id) => {
     setSelectedTheme(id);
     applyTheme(id);
-  };
-
-  const handleSaveTheme = async () => {
-    setSavingTheme(true);
     try {
-      await api.put('/tenants/current', { theme: selectedTheme });
-      updateActiveTenant({ theme: selectedTheme });
-      showSuccessToast('Tema guardado correctamente');
+      await api.put('/tenants/current', { theme: id });
+      updateActiveTenant({ theme: id });
     } catch {
       showErrorToast('No se pudo guardar el tema');
-      // Revertir preview si falla
       applyTheme(activeTenant?.theme || themeId);
       setSelectedTheme(activeTenant?.theme || themeId);
-    } finally {
-      setSavingTheme(false);
     }
   };
 
@@ -227,16 +216,6 @@ const ConfigPage = () => {
           ))}
         </Grid>
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            variant="contained"
-            onClick={handleSaveTheme}
-            disabled={savingTheme || selectedTheme === (activeTenant?.theme || 'verde-bosque')}
-            startIcon={savingTheme ? <CircularProgress size={16} color="inherit" /> : null}
-          >
-            {savingTheme ? 'Guardando...' : 'Guardar tema'}
-          </Button>
-        </Box>
       </Paper>
 
       {/* ── Datos de la sucursal ──────────────────────────────── */}
