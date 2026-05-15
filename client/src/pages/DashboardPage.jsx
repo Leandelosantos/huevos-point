@@ -83,62 +83,140 @@ const DashboardPage = () => {
       const worksheet = workbook.addWorksheet('Movimientos');
       const formattedDate = dayjs(selectedDate).format('DD/MM/YYYY');
 
-      // Title
-      worksheet.mergeCells('A1:E1');
+      worksheet.columns = [
+        { width: 25 }, // A: Hora / label resumen / método de pago
+        { width: 25 }, // B: Tipo/Concepto / valor resumen / total método
+        { width: 50 }, // C: Detalle de productos / Egresos label
+        { width: 25 }, // D: Medio de pago / Egresos valor
+        { width: 20 }, // E: Monto de desc. / Saldo neto label
+        { width: 20 }, // F: Importe / Saldo neto valor
+      ];
+
+      const solidFill = (argb) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+      const styleCell = (cell, bgArgb, fgArgb = 'FF000000', bold = false, numFmt = null, size = 11) => {
+        cell.fill = solidFill(bgArgb);
+        cell.font = { bold, color: { argb: fgArgb }, size };
+        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        if (numFmt) cell.numFmt = numFmt;
+      };
+
+      // Row 1 — Title
+      worksheet.mergeCells('A1:F1');
       const titleCell = worksheet.getCell('A1');
       titleCell.value = `Movimientos del día ${formattedDate}`;
       titleCell.font = { bold: true, size: 16 };
       titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
       worksheet.getRow(1).height = 40;
 
-      // Headers
+      // Row 2 — Summary (Ingresos / Egresos / Saldo neto)
+      const totalIncome = summary?.totalIncome || 0;
+      const totalExpenses = summary?.totalExpenses || 0;
+      const netBalance = summary?.netBalance || 0;
+
+      const summaryRow = worksheet.addRow([
+        'Ingresos del día', totalIncome,
+        'Egresos del día', totalExpenses,
+        'Saldo neto', netBalance,
+      ]);
+      // A+B: verde fluor
+      styleCell(summaryRow.getCell(1), 'FF00FF00', 'FF000000', true, null, 13);
+      styleCell(summaryRow.getCell(2), 'FF00FF00', 'FF000000', true, '"$"#,##0.00', 13);
+      // C+D: rojo oscuro 1 + texto blanco
+      styleCell(summaryRow.getCell(3), 'FFC00000', 'FFFFFFFF', true, null, 13);
+      styleCell(summaryRow.getCell(4), 'FFC00000', 'FFFFFFFF', true, '"$"#,##0.00', 13);
+      // E+F: azul aciano + texto blanco
+      styleCell(summaryRow.getCell(5), 'FF4472C4', 'FFFFFFFF', true, null, 13);
+      styleCell(summaryRow.getCell(6), 'FF4472C4', 'FFFFFFFF', true, '"$"#,##0.00', 13);
+      worksheet.getRow(summaryRow.number).height = 28;
+
+      // Rows 3+ — Payment methods (one per row, ordered)
+      const PAYMENT_COLORS = {
+        'Efectivo':     { bg: 'FF808080', fg: 'FFFFFFFF' },
+        'Cuenta DNI':   { bg: 'FF375623', fg: 'FFFFFFFF' },
+        'Transferencia':{ bg: 'FF7030A0', fg: 'FFFFFFFF' },
+        'Mercado Pago': { bg: 'FFFFCC00', fg: 'FF000000' },
+        'Rappi':        { bg: 'FFE26B0A', fg: 'FF000000' },
+      };
+      const DEFAULT_PAYMENT_COLOR = { bg: 'FF2E75B6', fg: 'FFFFFFFF' };
+
+      const paymentTotals = movements
+        .filter((m) => m.type === 'VENTA')
+        .reduce((acc, m) => {
+          if (m.paymentSplits && m.paymentSplits.length > 0) {
+            m.paymentSplits.forEach((s) => {
+              acc[s.method] = (acc[s.method] || 0) + parseFloat(s.amount);
+            });
+          } else {
+            acc[m.paymentMethod] = (acc[m.paymentMethod] || 0) + parseFloat(m.amount);
+          }
+          return acc;
+        }, {});
+
+      // Sort by known order first, then alphabetically for unknowns
+      const knownOrder = Object.keys(PAYMENT_COLORS);
+      const sortedPayments = Object.entries(paymentTotals).sort(([a], [b]) => {
+        const ia = knownOrder.indexOf(a);
+        const ib = knownOrder.indexOf(b);
+        if (ia !== -1 && ib !== -1) return ia - ib;
+        if (ia !== -1) return -1;
+        if (ib !== -1) return 1;
+        return a.localeCompare(b);
+      });
+
+      sortedPayments.forEach(([method, total]) => {
+        const color = PAYMENT_COLORS[method] || DEFAULT_PAYMENT_COLOR;
+        const pmRow = worksheet.addRow([method, total, '', '', '', '']);
+        pmRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          styleCell(
+            cell,
+            color.bg,
+            color.fg,
+            colNumber <= 2,
+            colNumber === 2 ? '"$"#,##0.00' : null
+          );
+        });
+        worksheet.getRow(pmRow.number).height = 22;
+      });
+
+      // Headers row — Magenta oscuro 2 + texto blanco
       const headers = ['Hora', 'Tipo/Concepto', 'Detalle de productos', 'Medio de pago', 'Monto de desc.', 'Importe'];
       const headerRow = worksheet.addRow(headers);
-      
       headerRow.eachCell((cell) => {
-        cell.font = { bold: true, size: 16 };
-        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFE8F5E9' } // Light green background (MUI green 50ish equivalent)
-        };
+        styleCell(cell, 'FF660066', 'FFFFFFFF', true);
+        cell.font = { bold: true, size: 13, color: { argb: 'FFFFFFFF' } };
       });
-      worksheet.getRow(2).height = 30;
+      worksheet.getRow(headerRow.number).height = 30;
 
-      // Column widths
-      worksheet.columns = [
-        { width: 15 }, // Hora
-        { width: 30 }, // Tipo/Concepto
-        { width: 50 }, // Detalle de productos
-        { width: 25 }, // Medio de pago
-        { width: 20 }, // Monto de desc.
-        { width: 20 }, // Importe
-      ];
-
-      // Data Rows
+      // Data Rows — ventas verde claro, egresos rojo claro
       movements.forEach((mov) => {
         let detalleText = mov.description;
         if (mov.details && mov.details.length > 0) {
-          detalleText = mov.details.map(d => `${d.productName} x${d.quantity}${d.discount > 0 ? ` (-${d.discount}%)` : ''}`).join('\n');
+          detalleText = mov.details.map(d => {
+            let line = `${d.productName} x${d.quantity}`;
+            if (d.discount > 0) line += ` (-${d.discount}%)`;
+            if (d.discount > 0 && d.discountConcept) line += ` [${d.discountConcept}]`;
+            return line;
+          }).join('\n');
         }
+
+        const isVenta = mov.type === 'VENTA';
+        const rowBgArgb = isVenta ? 'FFD8F3DC' : 'FFFFEBEE';
 
         const row = worksheet.addRow([
           dayjs(mov.createdAt).format('HH:mm'),
-          mov.type === 'VENTA' ? 'Venta' : `Egreso: ${mov.description}`,
-          mov.type === 'VENTA' ? detalleText : 'N/A',
+          isVenta ? 'Venta' : `Egreso: ${mov.description}`,
+          isVenta ? detalleText : 'N/A',
           mov.paymentSplits && mov.paymentSplits.length > 1
             ? mov.paymentSplits.map((s) => `${s.method}: ${CURRENCY_FORMAT.format(s.amount)}`).join('\n')
             : (mov.paymentMethod || 'N/A'),
           mov.discountAmount || 0,
-          mov.amount
+          mov.amount,
         ]);
 
         row.eachCell((cell, colNumber) => {
+          cell.fill = solidFill(rowBgArgb);
           cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-          if (colNumber === 5 || colNumber === 6) {
-            cell.numFmt = '"$"#,##0.00';
-          }
+          if (colNumber === 5 || colNumber === 6) cell.numFmt = '"$"#,##0.00';
         });
       });
 

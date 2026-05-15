@@ -11,6 +11,9 @@ import {
   ListItemText,
   Divider,
   Paper,
+  LinearProgress,
+  Collapse,
+  Button,
 } from '@mui/material';
 import { PieChart, pieArcLabelClasses } from '@mui/x-charts/PieChart';
 import { useDrawingArea } from '@mui/x-charts/hooks';
@@ -18,6 +21,8 @@ import { styled } from '@mui/material/styles';
 import api from '../services/api';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import InsertChartRoundedIcon from '@mui/icons-material/InsertChartRounded';
+import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
 import TrendingDownRoundedIcon from '@mui/icons-material/TrendingDownRounded';
 import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceWalletRounded';
@@ -323,11 +328,177 @@ const MonthlyBalanceCard = () => {
   );
 };
 
+const VISIBLE_LIMIT = 5;
+
+const ProductBar = ({ p, i, maxSold }) => (
+  <Box key={p.name}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.5 }}>
+      <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.primary', lineHeight: 1.3 }}>
+        {p.name}
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{ fontWeight: 700, color: PRODUCT_COLORS[i % PRODUCT_COLORS.length], ml: 2, whiteSpace: 'nowrap' }}
+      >
+        {p.totalSold} uds
+      </Typography>
+    </Box>
+    <LinearProgress
+      variant="determinate"
+      value={(p.totalSold / maxSold) * 100}
+      sx={{
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: 'rgba(0,0,0,0.06)',
+        '& .MuiLinearProgress-bar': {
+          borderRadius: 5,
+          backgroundColor: PRODUCT_COLORS[i % PRODUCT_COLORS.length],
+        },
+      }}
+    />
+  </Box>
+);
+
+const ProductsBarChartCard = () => {
+  const [selectedYM, setSelectedYM] = useState(todayYM);
+  const [products, setProducts] = useState([]);
+  const [loadingChart, setLoadingChart] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  const fetchProducts = useCallback(async (ym) => {
+    const [year, month] = ym.split('-');
+    try {
+      setLoadingChart(true);
+      setExpanded(false);
+      const { data } = await api.get('/metrics/products-sold', {
+        params: { year: parseInt(year, 10), month: parseInt(month, 10) },
+      });
+      setProducts(data.data);
+    } catch {
+      showErrorToast('Error al cargar productos vendidos');
+    } finally {
+      setLoadingChart(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchProducts(selectedYM); }, [fetchProducts, selectedYM]);
+
+  const isCurrentMonth = selectedYM === todayYM();
+  const label = monthLabel(selectedYM);
+  const maxSold = products.length > 0 ? Math.max(...products.map((p) => p.totalSold)) : 1;
+  const totalSold = products.reduce((acc, p) => acc + p.totalSold, 0);
+  const hasMore = products.length > VISIBLE_LIMIT;
+  const hiddenCount = products.length - VISIBLE_LIMIT;
+
+  return (
+    <Card sx={{ borderRadius: 3, boxShadow: '0px 4px 20px rgba(0,0,0,0.05)' }}>
+      <CardContent>
+        {/* Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <InsertChartRoundedIcon sx={{ color: '#2D6A4F' }} />
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Productos vendidos{isCurrentMonth ? ' (mes en curso)' : ` — ${label}`}
+            </Typography>
+          </Box>
+          <input
+            type="month"
+            value={selectedYM}
+            max={todayYM()}
+            onChange={(e) => e.target.value && setSelectedYM(e.target.value)}
+            style={{
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid #ccc',
+              fontSize: 14,
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+            }}
+          />
+        </Box>
+
+        {/* Chart body */}
+        {loadingChart ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} variant="rectangular" height={36} sx={{ borderRadius: 1 }} />
+            ))}
+          </Box>
+        ) : products.length === 0 ? (
+          <Box sx={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              No hay ventas registradas en {label}.
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            {/* Always-visible first 5 */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {products.slice(0, VISIBLE_LIMIT).map((p, i) => (
+                <ProductBar key={p.name} p={p} i={i} maxSold={maxSold} />
+              ))}
+            </Box>
+
+            {/* Collapsible rest */}
+            {hasMore && (
+              <>
+                <Collapse in={expanded}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1.5 }}>
+                    {products.slice(VISIBLE_LIMIT).map((p, i) => (
+                      <ProductBar key={p.name} p={p} i={i + VISIBLE_LIMIT} maxSold={maxSold} />
+                    ))}
+                  </Box>
+                </Collapse>
+
+                <Button
+                  size="small"
+                  onClick={() => setExpanded((prev) => !prev)}
+                  endIcon={expanded ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
+                  sx={{
+                    mt: 2,
+                    color: '#2D6A4F',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    '&:hover': { backgroundColor: 'rgba(45,106,79,0.06)' },
+                  }}
+                >
+                  {expanded ? 'Ver menos' : `Ver todos (${hiddenCount} más)`}
+                </Button>
+              </>
+            )}
+
+            {/* Totalizer */}
+            <Box
+              sx={{
+                mt: 3,
+                pt: 2,
+                borderTop: '1px solid',
+                borderColor: 'divider',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                Total de productos vendidos en {label}
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#1B4332' }}>
+                {totalSold} uds
+              </Typography>
+            </Box>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 const MetricsPage = () => {
   const [metrics, setMetrics] = useState({
     currentMonthTop: [],
     previousMonthTop: [],
     lowStockProducts: [],
+    currentMonthAll: [],
   });
   const [loading, setLoading] = useState(true);
 
@@ -424,6 +595,11 @@ const MetricsPage = () => {
               )}
             </CardContent>
           </Card>
+        </Grid>
+
+        {/* Products Bar Chart — selectable month */}
+        <Grid item xs={12}>
+          <ProductsBarChartCard />
         </Grid>
 
         {/* Low Stock Watchlist */}

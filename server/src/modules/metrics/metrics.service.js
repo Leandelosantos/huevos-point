@@ -41,6 +41,39 @@ class MetricsService {
     return this.getTopProductsForMonth(startOfMonth, endOfMonth, tenantId);
   }
 
+  async getAllProductsSoldForMonth(tenantId, year, month) {
+    const startOfMonth = new Date(year, month - 1, 1).toISOString().split('T')[0];
+    const endOfMonth = new Date(year, month, 0).toISOString().split('T')[0];
+
+    const query = `
+      SELECT
+        p.name AS "name",
+        SUM(si.quantity) AS "totalSold"
+      FROM sale_items si
+      INNER JOIN sales s ON si.sale_id = s.id
+      INNER JOIN products p ON si.product_id = p.id
+      WHERE s.sale_date BETWEEN :startDate AND :endDate
+        AND s.tenant_id = :tenantId
+      GROUP BY p.name
+      ORDER BY "totalSold" DESC
+    `;
+
+    const rows = await sequelize.query(query, {
+      replacements: { startDate: startOfMonth, endDate: endOfMonth, tenantId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    return rows.map((item) => ({
+      name: item.name,
+      totalSold: parseFloat(item.totalSold),
+    }));
+  }
+
+  async getAllProductsSoldCurrentMonth(tenantId) {
+    const now = new Date();
+    return this.getAllProductsSoldForMonth(tenantId, now.getFullYear(), now.getMonth() + 1);
+  }
+
   async getTopProductsPreviousMonth(tenantId) {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0];

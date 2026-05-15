@@ -3,10 +3,11 @@ const metricsService = require('./metrics.service');
 class MetricsController {
   async getMetrics(req, res, next) {
     try {
-      const [currentMonthTop, previousMonthTop, lowStockProducts] = await Promise.all([
+      const [currentMonthTop, previousMonthTop, lowStockProducts, currentMonthAll] = await Promise.all([
         metricsService.getTopProductsCurrentMonth(req.tenantId),
         metricsService.getTopProductsPreviousMonth(req.tenantId),
         metricsService.getLowStockProducts(req.tenantId),
+        metricsService.getAllProductsSoldCurrentMonth(req.tenantId),
       ]);
 
       res.status(200).json({
@@ -15,8 +16,26 @@ class MetricsController {
           currentMonthTop,
           previousMonthTop,
           lowStockProducts,
+          currentMonthAll,
         },
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getProductsSold(req, res, next) {
+    try {
+      const now = new Date();
+      const year = parseInt(req.query.year, 10) || now.getFullYear();
+      const month = parseInt(req.query.month, 10) || now.getMonth() + 1;
+
+      if (month < 1 || month > 12) {
+        return res.status(400).json({ success: false, message: 'Mes inválido (1-12)' });
+      }
+
+      const data = await metricsService.getAllProductsSoldForMonth(req.tenantId, year, month);
+      res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);
     }

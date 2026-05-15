@@ -13,6 +13,12 @@ router.get(
 );
 
 router.get(
+  '/products-sold',
+  requireRole('admin'),
+  metricsController.getProductsSold.bind(metricsController)
+);
+
+router.get(
   '/monthly-balance',
   requireRole('admin'),
   metricsController.getMonthlyBalance.bind(metricsController)

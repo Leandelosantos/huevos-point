@@ -190,6 +190,24 @@ Todo dentro de una transacción.
 - **Fix stock decimal en compras de productos genéricos** — `purchases.service.js`: `product.stockQuantity || 0` causaba concatenación de strings (`"0.00" + 5 = "0.005"` → PostgreSQL redondeaba a `0.01`). Corregido a `parseFloat(product.stockQuantity) || 0`.
 - **Fix display de stock en SaleModal** — `getAvailableStock` para productos genéricos usa `Math.floor(parseFloat(product.stockQuantity) || 0)` en vez de raw `product.stockQuantity` (que era string de Sequelize).
 
+### Recientemente implementado (sesión 2026-05-15)
+
+- **Exportación Excel — mejoras visuales** — `DashboardPage.jsx` `exportToExcel`:
+  - Fila 2 (summary): Ingresos verde fluor, Egresos rojo oscuro 1 + texto blanco, Saldo neto azul aciano + texto blanco. Font size 13.
+  - Filas de métodos de pago: una por fila, colores por método (Efectivo gris, Cuenta DNI verde oscuro, Transferencia púrpura, Mercado Pago amarillo, Rappi naranja, resto azul). Ordenadas: Efectivo → Cuenta DNI → Transferencia → Mercado Pago → Rappi → resto alfabético.
+  - Headers: Magenta oscuro 2 (`#660066`) + texto blanco.
+  - Filas ventas: verde claro `#D8F3DC`. Filas egresos: rojo claro `#FFEBEE`.
+  - Concepto de descuento incluido en detalle de productos: `Producto x2 (-10%) [concepto]`.
+
+- **Métricas — gráfico de productos vendidos por mes** (`MetricsPage.jsx`):
+  - Nuevo endpoint `GET /api/metrics/products-sold?year=&month=` → `metrics.service.getAllProductsSoldForMonth()`.
+  - Componente `ProductsBarChartCard` autocontenido con selector de mes (mismo estilo que `MonthlyBalanceCard`). Default: mes actual, permite seleccionar meses anteriores.
+  - Barras horizontales custom con `LinearProgress` MUI (no MUI x-charts) — nombres de productos completos sin truncar.
+  - Colores por posición usando `PRODUCT_COLORS` existente.
+  - Totalizador al pie: "Total de productos vendidos en [mes]: [N] uds".
+  - También se agrega `currentMonthAll` al endpoint `/metrics` original (reutiliza el mismo service).
+  - **Collapse en ProductsBarChartCard** — si hay más de 5 productos, los primeros 5 son siempre visibles. El resto se muestra/oculta con `Collapse` MUI y botón "Ver todos (N más)" / "Ver menos" con `ExpandMoreRoundedIcon`. `expanded` se resetea a `false` al cambiar de mes. Extracción de sub-componente `ProductBar`.
+
 ### Recientemente implementado (sesión 2026-05-14 — parte 2: escalabilidad + WhatsApp)
 
 - **Pool DB aumentado** — `server/src/config/database.js`: `pool.max` de 5 → 20. Pendiente del usuario: migrar Supabase connection string a Transaction Pooler (puerto 6543).
