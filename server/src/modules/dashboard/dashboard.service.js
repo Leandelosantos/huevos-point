@@ -85,6 +85,8 @@ const getDailyMovements = async (date, tenantId) => {
       details: [],
       user: expense.user?.fullName || expense.user?.username,
       createdAt: expense.createdAt,
+      receiptData: expense.receiptData || null,
+      receiptMimeType: expense.receiptMimeType || null,
     })),
   ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 

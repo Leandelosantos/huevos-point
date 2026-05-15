@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CssBaseline } from '@mui/material';
 import { ThemeProvider } from './context/ThemeContext';
@@ -20,6 +20,7 @@ import SuperadminTenantDetailPage from './pages/SuperadminTenantDetailPage';
 import ConfigPage from './pages/ConfigPage';
 import AutoLoginPage from './pages/AutoLoginPage';
 import ApiKeysPage from './pages/ApiKeysPage';
+import useInactivityTimer from './hooks/useInactivityTimer';
 
 // Sincroniza el tema del tenant activo con el ThemeContext
 const ThemeSyncer = () => {
@@ -27,8 +28,23 @@ const ThemeSyncer = () => {
   const { applyTheme } = useAppTheme();
 
   useEffect(() => {
-    applyTheme(activeTenant?.theme);
+    if (activeTenant?.theme) {
+      applyTheme(activeTenant.theme);
+    }
   }, [activeTenant?.theme, applyTheme]);
+
+  return null;
+};
+
+// Cierra sesión por inactividad tras 1 hora sin interacción real
+const InactivityWatcher = () => {
+  const { isAuthenticated, logout } = useAuth();
+
+  const handleExpire = useCallback(async () => {
+    await logout('inactivity');
+  }, [logout]);
+
+  useInactivityTimer({ isAuthenticated, onExpire: handleExpire });
 
   return null;
 };
@@ -41,6 +57,7 @@ const App = () => {
         <AuthProvider>
           <CurrencyProvider>
             <ThemeSyncer />
+            <InactivityWatcher />
             <Routes>
             {/* Public */}
             <Route path="/login" element={<LoginPage />} />

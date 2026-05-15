@@ -40,7 +40,12 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
 
       if (userData.tenants && userData.tenants.length > 0) {
-        const defaultTenant = userData.tenants[0];
+        // Check if the user has a saved default tenant preference
+        const savedDefaultId = localStorage.getItem(`defaultTenant_${userData.username}`);
+        const preferred = savedDefaultId
+          ? userData.tenants.find((t) => t.id === parseInt(savedDefaultId, 10))
+          : null;
+        const defaultTenant = preferred || userData.tenants[0];
         sessionStorage.setItem('activeTenant', JSON.stringify(defaultTenant));
         setActiveTenant(defaultTenant);
       } else {
@@ -57,9 +62,10 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (reason) => {
     try {
-      await api.post('/auth/logout');
+      const url = reason ? `/auth/logout?reason=${reason}` : '/auth/logout';
+      await api.post(url);
     } catch {
       // Logout even if API call fails
     } finally {

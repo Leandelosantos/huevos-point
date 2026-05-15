@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import dayjs from 'dayjs';
 import {
   Dialog,
@@ -12,15 +12,28 @@ import {
   IconButton,
   CircularProgress,
   Alert,
+  Stack,
 } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import ReceiptRoundedIcon from '@mui/icons-material/ReceiptRounded';
+import UploadFileRoundedIcon from '@mui/icons-material/UploadFileRounded';
+import CameraAltRoundedIcon from '@mui/icons-material/CameraAltRounded';
+import InsertDriveFileRoundedIcon from '@mui/icons-material/InsertDriveFileRounded';
 import { useForm } from 'react-hook-form';
 import api from '../../services/api';
+import { showErrorAlert } from '../../utils/sweetAlert';
+
+const MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB
 
 const ExpenseModal = ({ open, onClose, onSuccess }) => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [receiptData, setReceiptData] = useState(null);
+  const [receiptMimeType, setReceiptMimeType] = useState(null);
+  const [receiptFileName, setReceiptFileName] = useState('');
+
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   const {
     register,
@@ -28,6 +41,35 @@ const ExpenseModal = ({ open, onClose, onSuccess }) => {
     reset,
     formState: { errors },
   } = useForm();
+
+  const processFile = (file) => {
+    if (!file) return;
+    if (file.size > MAX_FILE_BYTES) {
+      showErrorAlert('Archivo demasiado grande', 'El comprobante no puede superar los 2 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const [header, base64] = reader.result.split(',');
+      const mime = header.match(/data:(.*);base64/)[1];
+      setReceiptData(base64);
+      setReceiptMimeType(mime);
+      setReceiptFileName(file.name);
+    };
+    reader.onerror = () => showErrorAlert('Error', 'No se pudo leer el archivo. Intente nuevamente.');
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = (e) => {
+    processFile(e.target.files[0]);
+    e.target.value = '';
+  };
+
+  const handleRemoveReceipt = () => {
+    setReceiptData(null);
+    setReceiptMimeType(null);
+    setReceiptFileName('');
+  };
 
   const onSubmit = async (formData) => {
     setError('');
@@ -37,8 +79,11 @@ const ExpenseModal = ({ open, onClose, onSuccess }) => {
         concept: formData.concept,
         amount: parseFloat(formData.amount),
         expenseDate: dayjs().format('YYYY-MM-DD'),
+        receiptData: receiptData || null,
+        receiptMimeType: receiptMimeType || null,
       });
       reset();
+      handleRemoveReceipt();
       onSuccess();
     } catch (err) {
       setError(err.response?.data?.message || 'Error al registrar el egreso');
@@ -50,6 +95,7 @@ const ExpenseModal = ({ open, onClose, onSuccess }) => {
   const handleClose = () => {
     reset();
     setError('');
+    handleRemoveReceipt();
     onClose();
   };
 
@@ -97,6 +143,89 @@ const ExpenseModal = ({ open, onClose, onSuccess }) => {
               min: { value: 0.01, message: 'El monto debe ser mayor a 0' },
             })}
           />
+
+          {/* ── Comprobante ─────────────────────────────────────── */}
+          <Box sx={{ mt: 2.5 }}>
+            {/* Input para archivo (galería / explorador de archivos) */}
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              style={{ display: 'none' }}
+              ref={fileInputRef}
+              onChange={handleFileChange}
+            />
+            {/* Input para cámara directa — capture="environment" abre cámara trasera en móvil */}
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              style={{ display: 'none' }}
+              ref={cameraInputRef}
+              onChange={handleFileChange}
+            />
+
+            {receiptFileName ? (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  px: 2,
+                  py: 1.5,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'success.light',
+                  bgcolor: '#E8F5E9',
+                }}
+              >
+                <InsertDriveFileRoundedIcon sx={{ color: '#2D6A4F', flexShrink: 0 }} />
+                <Typography variant="body2" sx={{ flexGrow: 1, fontWeight: 600, color: '#2D6A4F' }} noWrap>
+                  {receiptFileName}
+                </Typography>
+                <IconButton size="small" onClick={handleRemoveReceipt} sx={{ color: 'text.secondary' }}>
+                  <CloseRoundedIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            ) : (
+              <Stack direction="row" spacing={1}>
+                <Button
+                  variant="outlined"
+                  startIcon={<UploadFileRoundedIcon />}
+                  onClick={() => fileInputRef.current.click()}
+                  fullWidth
+                  sx={{
+                    borderStyle: 'dashed',
+                    borderColor: 'divider',
+                    color: 'text.secondary',
+                    py: 1.2,
+                    fontSize: '0.78rem',
+                    '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+                  }}
+                >
+                  Adjuntar archivo
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<CameraAltRoundedIcon />}
+                  onClick={() => cameraInputRef.current.click()}
+                  fullWidth
+                  sx={{
+                    borderStyle: 'dashed',
+                    borderColor: 'divider',
+                    color: 'text.secondary',
+                    py: 1.2,
+                    fontSize: '0.78rem',
+                    '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+                  }}
+                >
+                  Tomar foto
+                </Button>
+              </Stack>
+            )}
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              Opcional · JPG, PNG, PDF · máx. 2 MB
+            </Typography>
+          </Box>
         </DialogContent>
 
         <DialogActions sx={{ px: 3, py: 2 }}>

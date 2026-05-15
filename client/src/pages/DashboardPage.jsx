@@ -18,6 +18,9 @@ import {
   TextField,
   IconButton,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from '@mui/material';
 import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded';
 import TrendingDownRoundedIcon from '@mui/icons-material/TrendingDownRounded';
@@ -25,6 +28,8 @@ import AccountBalanceWalletRoundedIcon from '@mui/icons-material/AccountBalanceW
 import AddShoppingCartRoundedIcon from '@mui/icons-material/AddShoppingCartRounded';
 import RemoveShoppingCartRoundedIcon from '@mui/icons-material/RemoveShoppingCartRounded';
 import ReceiptLongRoundedIcon from '@mui/icons-material/ReceiptLongRounded';
+import ReceiptRoundedIcon from '@mui/icons-material/ReceiptRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import CurrencyExchangeRoundedIcon from '@mui/icons-material/CurrencyExchangeRounded';
 import dayjs from 'dayjs';
@@ -47,6 +52,7 @@ const DashboardPage = () => {
   const [saleModalOpen, setSaleModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [receiptViewer, setReceiptViewer] = useState(null); // { data, mimeType }
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -508,13 +514,14 @@ const DashboardPage = () => {
                     <TableCell>Medio de pago</TableCell>
                     <TableCell align="right">Monto desc.</TableCell>
                     <TableCell align="right">Importe</TableCell>
+                    <TableCell align="center">Comprobante</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {loading ? (
                     Array.from({ length: 3 }).map((_, i) => (
                       <TableRow key={i}>
-                        {Array.from({ length: 6 }).map((_, j) => (
+                        {Array.from({ length: 7 }).map((_, j) => (
                           <TableCell key={j}>
                             <Skeleton />
                           </TableCell>
@@ -523,7 +530,7 @@ const DashboardPage = () => {
                     ))
                   ) : movements.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                         <Typography variant="body2" color="text.secondary">
                           No hay movimientos registrados hoy
                         </Typography>
@@ -633,6 +640,21 @@ const DashboardPage = () => {
                             {formatAmount(mov.amount)}
                           </Typography>
                         </TableCell>
+                        <TableCell align="center">
+                          {mov.type === 'EGRESO' && mov.receiptData ? (
+                            <Tooltip title="Ver comprobante">
+                              <IconButton
+                                size="small"
+                                onClick={() => setReceiptViewer({ data: mov.receiptData, mimeType: mov.receiptMimeType })}
+                                sx={{ color: '#C62828' }}
+                              >
+                                <ReceiptRoundedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : (
+                            <Typography variant="caption" color="text.disabled">—</Typography>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -653,6 +675,41 @@ const DashboardPage = () => {
         onClose={() => setExpenseModalOpen(false)}
         onSuccess={handleExpenseSuccess}
       />
+
+      {/* Receipt viewer */}
+      <Dialog
+        open={Boolean(receiptViewer)}
+        onClose={() => setReceiptViewer(null)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 700 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ReceiptRoundedIcon color="error" />
+            Comprobante de egreso
+          </Box>
+          <IconButton size="small" onClick={() => setReceiptViewer(null)}>
+            <CloseRoundedIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 2, display: 'flex', justifyContent: 'center', bgcolor: '#f5f5f5' }}>
+          {receiptViewer?.mimeType === 'application/pdf' ? (
+            <Box
+              component="iframe"
+              src={`data:application/pdf;base64,${receiptViewer.data}`}
+              sx={{ width: '100%', height: '70vh', border: 'none', borderRadius: 1 }}
+              title="Comprobante PDF"
+            />
+          ) : (
+            <Box
+              component="img"
+              src={`data:${receiptViewer?.mimeType};base64,${receiptViewer?.data}`}
+              alt="Comprobante"
+              sx={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: 1 }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

@@ -22,6 +22,8 @@ import AddBusinessRoundedIcon from '@mui/icons-material/AddBusinessRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteForeverRoundedIcon from '@mui/icons-material/DeleteForeverRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import HomeWorkRoundedIcon from '@mui/icons-material/HomeWorkRounded';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../context/AuthContext';
 import { useAppTheme } from '../context/ThemeContext';
@@ -122,6 +124,28 @@ const ConfigPage = () => {
   // Sucursales disponibles para el selector de eliminación (excluye la activa)
   const deletableTenants = (user?.tenants || []).filter((t) => t.id !== activeTenant?.id);
 
+  // Sucursal por defecto — persiste en localStorage por usuario
+  const defaultTenantKey = user ? `defaultTenant_${user.username}` : null;
+  const [defaultTenantId, setDefaultTenantId] = useState(() => {
+    if (!user) return null;
+    const saved = localStorage.getItem(`defaultTenant_${user.username}`);
+    return saved ? parseInt(saved, 10) : null;
+  });
+
+  const handleSetDefaultTenant = (tenantId) => {
+    if (!defaultTenantKey) return;
+    if (tenantId === null) {
+      localStorage.removeItem(defaultTenantKey);
+      setDefaultTenantId(null);
+      showSuccessToast('Sucursal por defecto eliminada');
+    } else {
+      localStorage.setItem(defaultTenantKey, String(tenantId));
+      setDefaultTenantId(tenantId);
+      const name = user.tenants.find((t) => t.id === tenantId)?.name || '';
+      showSuccessToast(`Sucursal por defecto: "${name}"`);
+    }
+  };
+
   useEffect(() => {
     if (activeTenant?.name) {
       resetEdit({ name: activeTenant.name });
@@ -217,6 +241,89 @@ const ConfigPage = () => {
         </Grid>
 
       </Paper>
+
+      {/* ── Sucursal por defecto ──────────────────────────────── */}
+      {(user?.tenants || []).length > 1 && (
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+            <HomeWorkRoundedIcon color="primary" />
+            <Typography variant="h6" fontWeight={700}>
+              Sucursal por defecto
+            </Typography>
+          </Stack>
+
+          <Stack direction="row" alignItems="flex-start" spacing={1} sx={{ mb: 2.5, p: 1.5, borderRadius: 2, bgcolor: 'action.hover' }}>
+            <InfoOutlinedIcon sx={{ fontSize: 18, color: 'text.secondary', mt: 0.2, flexShrink: 0 }} />
+            <Typography variant="body2" color="text.secondary">
+              Al iniciar sesión, el sistema abrirá automáticamente la sucursal que elijas aquí.
+              Si no elegís ninguna, se usará la primera sucursal disponible.
+              Esta preferencia es tuya: no afecta a otros usuarios.
+            </Typography>
+          </Stack>
+
+          <Stack spacing={1.5}>
+            {(user?.tenants || []).map((tenant) => {
+              const isSelected = defaultTenantId === tenant.id;
+              return (
+                <Box
+                  key={tenant.id}
+                  onClick={() => handleSetDefaultTenant(isSelected ? null : tenant.id)}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    px: 2,
+                    py: 1.5,
+                    borderRadius: 2,
+                    border: '2px solid',
+                    borderColor: isSelected ? 'primary.main' : 'divider',
+                    bgcolor: isSelected ? 'primary.50' : 'background.paper',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      border: '2px solid',
+                      borderColor: isSelected ? 'primary.main' : 'text.disabled',
+                      bgcolor: isSelected ? 'primary.main' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {isSelected && (
+                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#fff' }} />
+                    )}
+                  </Box>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="body2" fontWeight={isSelected ? 700 : 500}>
+                      {tenant.name}
+                    </Typography>
+                    {isSelected && (
+                      <Typography variant="caption" color="primary.main" fontWeight={600}>
+                        Se abrirá al iniciar sesión
+                      </Typography>
+                    )}
+                  </Box>
+                  {isSelected && (
+                    <CheckCircleRoundedIcon sx={{ color: 'primary.main', fontSize: 20 }} />
+                  )}
+                </Box>
+              );
+            })}
+          </Stack>
+        </Paper>
+      )}
 
       {/* ── Datos de la sucursal ──────────────────────────────── */}
       <Paper sx={{ p: 3, mb: 3 }}>

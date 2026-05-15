@@ -33,6 +33,18 @@ const Expense = sequelize.define('Expense', {
     defaultValue: DataTypes.NOW,
     field: 'expense_date',
   },
+  receiptData: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    defaultValue: null,
+    field: 'receipt_data',
+  },
+  receiptMimeType: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    defaultValue: null,
+    field: 'receipt_mime_type',
+  },
 }, {
   tableName: 'expenses',
   updatedAt: false,

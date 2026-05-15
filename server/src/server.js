@@ -28,6 +28,17 @@ const runMigrations = async () => {
     console.log('✅ Migración aplicada: receipt_data y receipt_mime_type en purchases');
   }
 
+  // Add receipt columns to expenses if missing
+  const [expenseReceiptCol] = await sequelize.query(`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'expenses' AND column_name = 'receipt_data'
+  `);
+  if (expenseReceiptCol.length === 0) {
+    await sequelize.query(`ALTER TABLE expenses ADD COLUMN receipt_data TEXT DEFAULT NULL`);
+    await sequelize.query(`ALTER TABLE expenses ADD COLUMN receipt_mime_type VARCHAR(50) DEFAULT NULL`);
+    console.log('✅ Migración aplicada: receipt_data y receipt_mime_type en expenses');
+  }
+
   // ── Equivalencias huevos: egg_categories + alteraciones products/purchases ──
   await sequelize.query(`
     CREATE TABLE IF NOT EXISTS egg_categories (

@@ -29,12 +29,17 @@ const login = async (req, res, next) => {
 
 const logout = async (req, res, next) => {
   try {
+    const isInactivity = req.query.reason === 'inactivity';
+    const description = isInactivity
+      ? `Sesion cerrada por inactividad (${req.user.username})`
+      : `Usuario ${req.user.username} cerró sesión`;
+
     await createAuditLog({
       tenantId: req.tenantId || null,
       userId: req.user.id,
       username: req.user.username,
       actionType: 'LOGOUT',
-      description: `Usuario ${req.user.username} cerró sesión`,
+      description,
       ipAddress: req.ip,
     });
 

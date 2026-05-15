@@ -208,6 +208,12 @@ Todo dentro de una transacción.
   - También se agrega `currentMonthAll` al endpoint `/metrics` original (reutiliza el mismo service).
   - **Collapse en ProductsBarChartCard** — si hay más de 5 productos, los primeros 5 son siempre visibles. El resto se muestra/oculta con `Collapse` MUI y botón "Ver todos (N más)" / "Ver menos" con `ExpandMoreRoundedIcon`. `expanded` se resetea a `false` al cambiar de mes. Extracción de sub-componente `ProductBar`.
 
+- **Fix tema no persiste al re-login** — `auth.repository.js`: agregado `'theme'` a `attributes: ['id', 'name', 'theme']` en el include de Tenant. Ahora el login response incluye `tenant.theme` y `ThemeSyncer` en `App.jsx` lo aplica automáticamente al iniciar sesión.
+
+- **Fix selector de mes incompatible con iOS Safari** — `input[type="month"]` reemplazado por `MonthYearPicker` (componente nuevo en `MetricsPage.jsx`) — dos `Select` MUI (mes + año). Funciona en todos los browsers. Años: 2024 → actual. Meses futuros deshabilitados. Aplicado en `MonthlyBalanceCard` y `ProductsBarChartCard`.
+
+- **Collapse en alertas de stock** — `MetricsPage.jsx`: primeros 10 visibles, resto en `Collapse`. Estado `expandedStock` en `MetricsPage`. Botón "Ver todos / Ver menos" en rojo `#E63946`. Constante `STOCK_VISIBLE_LIMIT = 10`.
+
 - **Método de pago renombrado** — "Mercado Pago" → "Mercado Pago - Posnet" en `SaleModal.jsx` (`PAYMENT_METHODS`) y `DashboardPage.jsx` (`PAYMENT_COLORS`).
 
 - **Guardar Tema — eliminado** — `ConfigPage.jsx`: botón "Guardar tema" removido. `handleSelectTheme` ahora guarda automáticamente vía `PUT /tenants/current` al hacer click. Si falla, revierte el preview. Removidos: `savingTheme` state, `handleSaveTheme()`, `CircularProgress` import.
