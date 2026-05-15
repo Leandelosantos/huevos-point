@@ -21,5 +21,6 @@ const jwtVerify = (req, _res, next) => {
 };
 
 const tenantMiddleware = require('./tenantMiddleware');
+const rlsMiddleware = require('./rlsMiddleware');
 
-module.exports = [jwtVerify, tenantMiddleware];
+module.exports = [jwtVerify, tenantMiddleware, rlsMiddleware];

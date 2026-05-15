@@ -74,6 +74,7 @@ class MetricsService {
       },
       attributes: ['id', 'name', 'stockQuantity'],
       order: [['stockQuantity', 'ASC']],
+      limit: 500,
     });
 
     return products.map((product) => ({

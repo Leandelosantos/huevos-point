@@ -77,6 +77,8 @@ const createApiKey = async ({ name, businessId, tenantId, scopes, rateLimitPerMi
   };
 };
 
+// SUPERADMIN ONLY (enforced in apiKeys.routes.js via requireRole('superadmin')).
+// No tenantId filter is intentional: superadmin manages all keys across all tenants/businesses.
 const listApiKeys = async () => {
   const keys = await ApiKey.findAll({
     attributes: { exclude: ['keyHash'] },

@@ -26,7 +26,7 @@ import api from '../../services/api';
 import { CURRENCY_FORMAT } from '../../utils/formatters';
 
 const EMPTY_ITEM = { productId: '', quantity: '', discount: '', discountConcept: '' };
-const PAYMENT_METHODS = ['Efectivo', 'Mercado Pago', 'Transferencia', 'Cuenta DNI'];
+const PAYMENT_METHODS = ['Efectivo', 'Mercado Pago', 'Transferencia', 'Cuenta DNI', 'Rappi'];
 
 const SaleModal = ({ open, onClose, onSuccess }) => {
   const [products, setProducts] = useState([]);

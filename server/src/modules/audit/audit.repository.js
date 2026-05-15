@@ -1,4 +1,4 @@
-const { AuditLog, User } = require('../../models');
+const { AuditLog } = require('../../models');
 const { Op } = require('sequelize');
 
 const findAll = async (tenantId, filters = {}) => {
@@ -29,13 +29,6 @@ const findAll = async (tenantId, filters = {}) => {
 
   const { count, rows } = await AuditLog.findAndCountAll({
     where,
-    include: [
-      {
-        model: User,
-        as: 'user',
-        attributes: [], // Only for joining
-      },
-    ],
     order: [['createdAt', 'DESC']],
     limit: parseInt(filters.limit, 10) || 50,
     offset: parseInt(filters.offset, 10) || 0,

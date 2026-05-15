@@ -126,16 +126,17 @@ const remove = async (id, tenantId) => {
   if (!category) throw new AppError('Categoría no encontrada', 404);
 
   await sequelize.transaction(async (t) => {
-    // Null out FK in purchases so the category row can be hard-deleted (no ON DELETE CASCADE).
-    // No tenantId filter: the FK constraint is global, so all references must be cleared.
+    // Null out FK in purchases before hard-deleting the category (no ON DELETE CASCADE).
+    // egg_categories.id is a globally unique SERIAL PK, so categoryId already pinpoints
+    // the exact row — adding tenantId is a safety check to avoid touching other tenants.
     await Purchase.update(
       { categoryId: null },
-      { where: { categoryId: id }, transaction: t }
+      { where: { categoryId: id, tenantId }, transaction: t }
     );
-    // Soft-delete presentations and clear FK (same reason — no tenantId filter).
+    // Soft-delete presentations and clear FK.
     await Product.update(
       { isActive: false, categoryId: null },
-      { where: { categoryId: id }, transaction: t }
+      { where: { categoryId: id, tenantId }, transaction: t }
     );
     await category.destroy({ transaction: t });
   });

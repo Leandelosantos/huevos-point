@@ -19,6 +19,9 @@ const findAll = async (tenantId, filters = {}) => {
     where.saleDate = filters.date;
   }
 
+  const limit = Math.min(parseInt(filters.limit, 10) || 100, 500);
+  const offset = parseInt(filters.offset, 10) || 0;
+
   return Sale.findAll({
     where,
     include: [
@@ -29,6 +32,8 @@ const findAll = async (tenantId, filters = {}) => {
       },
     ],
     order: [['createdAt', 'DESC']],
+    limit,
+    offset,
   });
 };
 

@@ -99,6 +99,11 @@ const migrationPromise = (async () => {
     await sequelize.query(`CREATE INDEX IF NOT EXISTS audit_logs_tenant_created_idx ON audit_logs (tenant_id, created_at DESC)`);
     await sequelize.query(`CREATE INDEX IF NOT EXISTS products_tenant_active_idx ON products (tenant_id, is_active)`);
     await sequelize.query(`CREATE INDEX IF NOT EXISTS purchases_tenant_date_idx ON purchases (tenant_id, purchase_date)`);
+    // Composite index for dashboard/metrics join: sale_items → products
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS sale_items_product_sale_idx ON sale_items (product_id, sale_id)`);
+    // FK indexes for egg category lookups
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS purchases_category_id_idx ON purchases (category_id)`);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS products_category_id_idx ON products (category_id)`);
     console.log('[migration] performance indexes ensured');
 
     // ── Equivalencias huevos: egg_categories + alteraciones products/purchases ──
@@ -154,11 +159,8 @@ const migrationPromise = (async () => {
     await sequelize.query(`DROP INDEX IF EXISTS products_name_key1`);
     // Create correct partial unique index: only active rows, scoped by tenant
     await sequelize.query(`CREATE UNIQUE INDEX IF NOT EXISTS products_active_name_uidx ON products(tenant_id, name) WHERE is_active = true`);
-    // Hard-delete orphaned inactive presentations left from soft-delete logic
-    await sequelize.query(`DELETE FROM products WHERE is_active = false AND units_per_presentation > 1`);
     // Hard-delete orphaned inactive egg_categories
     await sequelize.query(`DELETE FROM egg_categories WHERE is_active = false`);
-    console.log('[migration] products & egg_categories partial unique indexes ensured');
 
     // Add category_id and units_per_presentation to products
     const [catCol] = await sequelize.query(`
@@ -170,6 +172,9 @@ const migrationPromise = (async () => {
       await sequelize.query(`ALTER TABLE products ADD COLUMN units_per_presentation INT DEFAULT 1`);
       console.log('[migration] category_id + units_per_presentation added to products');
     }
+    // Hard-delete orphaned inactive presentations — column guaranteed to exist at this point
+    await sequelize.query(`DELETE FROM products WHERE is_active = false AND units_per_presentation > 1`);
+    console.log('[migration] products & egg_categories partial unique indexes ensured');
 
     // Add category_id to purchases, make product_id nullable, quantity to DECIMAL
     const [purCatCol] = await sequelize.query(`
@@ -231,14 +236,14 @@ const migrationPromise = (async () => {
       )
     `);
     await sequelize.query(`
-      INSERT INTO subscription_plans (name, display_name, description, price_monthly, price_yearly, max_branches, max_users, features)
+      INSERT INTO subscription_plans (name, display_name, description, price_monthly, price_yearly, max_branches, max_users, features, created_at, updated_at)
       VALUES
         ('basico', 'Plan Básico', 'Gestión esencial para distribuidoras pequeñas', 15000, 135000, 1, 3,
-         '{"ventas":true,"egresos":true,"stock":true,"compras_basico":true,"dashboard":true,"email_diario":true,"clientes":false,"auditoria":false,"exportacion_excel":false,"mp_point":false,"metricas_avanzadas":false,"descuentos_item":false}'::jsonb),
+         '{"ventas":true,"egresos":true,"stock":true,"compras_basico":true,"dashboard":true,"email_diario":true,"clientes":false,"auditoria":false,"exportacion_excel":false,"mp_point":false,"metricas_avanzadas":false,"descuentos_item":false}'::jsonb, now(), now()),
         ('profesional', 'Plan Profesional', 'Control total para distribuidoras en crecimiento', 35000, 315000, 5, -1,
-         '{"ventas":true,"egresos":true,"stock":true,"compras_basico":true,"compras_avanzado":true,"dashboard":true,"email_diario":true,"clientes":true,"auditoria":true,"exportacion_excel":true,"mp_point":true,"metricas_avanzadas":true,"descuentos_item":true}'::jsonb),
+         '{"ventas":true,"egresos":true,"stock":true,"compras_basico":true,"compras_avanzado":true,"dashboard":true,"email_diario":true,"clientes":true,"auditoria":true,"exportacion_excel":true,"mp_point":true,"metricas_avanzadas":true,"descuentos_item":true}'::jsonb, now(), now()),
         ('personalizado', 'Plan Personalizado', 'Todo lo del Plan Profesional + desarrollo a medida', 0, 0, -1, -1,
-         '{"ventas":true,"egresos":true,"stock":true,"compras_basico":true,"compras_avanzado":true,"dashboard":true,"email_diario":true,"clientes":true,"auditoria":true,"exportacion_excel":true,"mp_point":true,"metricas_avanzadas":true,"descuentos_item":true,"desarrollo_a_medida":true}'::jsonb)
+         '{"ventas":true,"egresos":true,"stock":true,"compras_basico":true,"compras_avanzado":true,"dashboard":true,"email_diario":true,"clientes":true,"auditoria":true,"exportacion_excel":true,"mp_point":true,"metricas_avanzadas":true,"descuentos_item":true,"desarrollo_a_medida":true}'::jsonb, now(), now())
       ON CONFLICT DO NOTHING
     `);
     await sequelize.query(`

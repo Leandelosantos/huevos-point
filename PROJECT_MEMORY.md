@@ -63,6 +63,8 @@ User ←→ Tenants (many-to-many vía user_tenants)
 - `req.tenantId` seteado por tenantMiddleware
 - Todo query filtra por `tenantId`
 - Superadmin accede a todo sin restricción
+- **RLS activo en Supabase** — `FORCE ROW LEVEL SECURITY` en todas las tablas. `rlsMiddleware` setea `app.tenant_id` y `app.role` en cada request JWT. Políticas: `is_superadmin()` bypasea todo; resto filtra por `tenant_id = app_tenant_id()`.
+- **Documentación RLS:** `docs/rls-migration.sql` (SQL ejecutado), `docs/rls-audit-report.md` (inventario + queries en riesgo)
 
 ---
 
@@ -99,8 +101,8 @@ server/src/modules/
 ├── dashboard/      → GET /api/dashboard/summary
 ├── sales/          → CRUD /api/sales + descuento de stock por categoría
 ├── expenses/       → CRUD /api/expenses
-├── products/       → CRUD /api/products + bulk upload (Excel)
-├── purchases/      → CRUD /api/purchases + superadmin: edit/delete
+├── products/       → CRUD /api/products + POST /bulk (Excel import, replace) + DELETE /bulk (eliminar todos los genéricos)
+├── purchases/      → CRUD /api/purchases + POST /bulk (multi-ítem) + superadmin: edit/delete
 ├── eggCategories/  → CRUD /api/egg-categories (admin+) + stock adjust
 ├── users/          → CRUD /api/users (admin)
 ├── tenants/        → CRUD /api/tenants (superadmin)
@@ -144,11 +146,11 @@ buildPresentations(eggsPerCrate) → 6 presentaciones:
 - Estándar: `eggsPerCrate = 360` → Maple = 30 unidades, Promo = 60 unidades
 
 ### Eliminación de categoría (`remove`)
-1. `Purchase.update({ categoryId: null })` → nullear FK en compras (sin filtro tenantId — la FK es global)
-2. `Product.update({ isActive: false, categoryId: null })` → soft-delete presentaciones (sin filtro tenantId)
+1. `Purchase.update({ categoryId: null, tenantId })` → nullear FK en compras del tenant
+2. `Product.update({ isActive: false, categoryId: null, tenantId })` → soft-delete presentaciones del tenant
 3. `category.destroy()` → hard-delete categoría
 Todo dentro de una transacción.
-**Crítico:** los updates de FK cleanup NO filtran por `tenantId`. La FK constraint en PostgreSQL es global — si quedan referencias desde cualquier tenant, el `category.destroy()` falla.
+**Nota:** Los updates de FK cleanup sí filtran por `tenantId` (fix 2026-05-14). `egg_categories.id` es PK SERIAL único globalmente, por lo que el filtro es redundante pero seguro como check extra.
 
 ### Índices parciales (solo filas activas)
 - `egg_categories_active_name_uidx ON egg_categories(tenant_id, name) WHERE is_active = true`
@@ -181,12 +183,58 @@ Todo dentro de una transacción.
 - **Presentación "Promo x2 maples"** — 6ta presentación auto-generada en todas las categorías
 - **Fix bug 409 al recrear categoría** — eliminadas constraints globales UNIQUE, reemplazadas por índices parciales; también se nullea `category_id` en purchases al eliminar categoría
 
-### Recientemente implementado (sesión actual — 2026-05-04)
+### Recientemente implementado (sesión 2026-05-04 — parte 1)
 - **Fix definitivo bug 409 al eliminar categoría** — `remove()` en `eggCategories.service.js` ya no filtra por `tenantId` en los updates de FK cleanup (`Purchase.update`, `Product.update`). La FK en PostgreSQL es global; cualquier referencia de cualquier tenant bloqueaba el `category.destroy()`.
 - **Migración: DROP INDEX explícito en egg_categories** — `server/api/index.js` y `server/src/server.js` ahora droppean nombres conocidos de índices directos (`egg_categories_name_key`, `egg_categories_tenant_id_name_key`, etc.) que no aparecen en `information_schema.table_constraints`.
 - **Buscador en PurchaseModal (producto general)** — `TextField select` reemplazado por `Autocomplete` MUI con filtro desde 3 letras. Estado: `productSearch` + `selectedProduct`. Reset al abrir el modal.
 - **Fix stock decimal en compras de productos genéricos** — `purchases.service.js`: `product.stockQuantity || 0` causaba concatenación de strings (`"0.00" + 5 = "0.005"` → PostgreSQL redondeaba a `0.01`). Corregido a `parseFloat(product.stockQuantity) || 0`.
 - **Fix display de stock en SaleModal** — `getAvailableStock` para productos genéricos usa `Math.floor(parseFloat(product.stockQuantity) || 0)` en vez de raw `product.stockQuantity` (que era string de Sequelize).
+
+### Recientemente implementado (sesión 2026-05-14 — parte 2: escalabilidad + WhatsApp)
+
+- **Pool DB aumentado** — `server/src/config/database.js`: `pool.max` de 5 → 20. Pendiente del usuario: migrar Supabase connection string a Transaction Pooler (puerto 6543).
+
+- **Paginación en sales.repository.js** — `findAll()` ahora acepta `filters.limit` (cap 500, default 100) y `filters.offset`. Antes era unbounded.
+
+- **LIMIT en metrics.service.js** — `getLowStockProducts()` ahora incluye `limit: 500`.
+
+- **Optimización audit.repository.js** — eliminado JOIN a `User` model en `findAndCountAll` (era innecesario, datos de usuario no se mostraban en auditoría).
+
+- **3 índices nuevos en cold-start** — `sale_items_product_sale_idx`, `purchases_category_id_idx`, `products_category_id_idx`. En `server/api/index.js` y `server/src/server.js`.
+
+- **Cron schedule actualizado** — `server/vercel.json`:
+  ```json
+  [
+    { "path": "/api/cron/daily-summary", "schedule": "30 23 * * 0-5" },
+    { "path": "/api/cron/daily-summary", "schedule": "30 17 * * 6" }
+  ]
+  ```
+  `0-5` = Dom a Vie → 23:30 UTC = 20:30 BsAs. `6` = Sáb → 17:30 UTC = 14:30 BsAs.
+
+- **Tests: 167/167 passing** — `summary.service.test.js` y `cron.controller.test.js` actualizados para nueva lógica de cron schedule.
+
+### Recientemente implementado (sesión 2026-05-14)
+
+- **Método de pago "Rappi"** — agregado a `PAYMENT_METHODS` en `SaleModal.jsx`. No requirió cambio en backend (campo es `VARCHAR` libre).
+
+- **Fix migración cold-start** — `server/src/server.js` y `server/api/index.js`: el `DELETE FROM products WHERE is_active = false AND units_per_presentation > 1` se ejecutaba ANTES del `ALTER TABLE ADD COLUMN units_per_presentation`, causando crash en DB nueva. Movido después del ALTER TABLE.
+
+- **Fix timestamps en `subscription_plans`** — INSERT no incluía `created_at`/`updated_at`. La tabla existía en DB sin DEFAULT → NULL violation. Fix: agregar `now(), now()` explícito en INSERT en ambos entry points.
+
+- **RLS implementado en 19 tablas** — `docs/rls-migration.sql` ejecutado en Supabase (project `oapzgiqcjkagiysjgvdl`). Todas las tablas tienen `rls_enabled = true` y `rls_forced = true`. Mecanismo: `SET app.tenant_id` + `SET app.role` vía `rlsMiddleware`. Funciones helper: `app_tenant_id()`, `app_role()`, `is_superadmin()`.
+
+- **Fix bug eggCategories.service.js `remove()`** — `Purchase.update` y `Product.update` ahora incluyen `tenantId` en el `where`. El comentario anterior (FK global, no filtrar) era incorrecto.
+
+- **`rlsMiddleware` integrado en authMiddleware** — el array `module.exports` en `authMiddleware.js` pasó de `[jwtVerify, tenantMiddleware]` a `[jwtVerify, tenantMiddleware, rlsMiddleware]`.
+
+- **Fix test security.test.js post-RLS** — `rlsMiddleware` importaba `{ sequelize }` de `../models` pero ese mock no exporta `sequelize`. Cambiado a `require('../config/database')` que sí está mockeado con `query: jest.fn()`.
+
+### Recientemente implementado (sesión 2026-05-04 — parte 2)
+- **Eliminar todos los productos cargados** — botón "Eliminar todos" en Tab "Productos Cargados" (visible solo para admin cuando hay productos). Endpoint `DELETE /api/products/bulk` → soft-delete de todos los productos genéricos del tenant.
+- **Carga .xlsx reemplaza productos anteriores** — `processBulkStock` ahora soft-deletea todos los genéricos del tenant antes de insertar los nuevos. La carga es replace, no merge.
+- **Compras multi-ítem** — nuevo endpoint `POST /api/purchases/bulk`. Acepta `{ items: [...], receiptData, receiptMimeType }`. Cada ítem puede tener `categoryId` o `productId`. Todo en una única transacción atómica. El endpoint `/bulk` va antes de `/:id` en la ruta.
+- **PurchaseModal rediseñado** — fecha compartida para todo el lote. Tab Huevos: lista dinámica con "+ Agregar categoría" y botón quitar. Tab Genérico: lista dinámica con "+ Agregar producto" y Autocomplete por ítem. Botón confirmar muestra conteo de ítems. Comprobante es uno por lote.
+- **Fix test purchases.service.test.js** — el test fallaba por error preexistente: el mock de `../../config/database` no incluía `define`, que es llamado por `../../models` al importarse. Solucionado mockeando `../../models` directamente con `{ EggCategory: { findOne: jest.fn() }, Product: { findOne: jest.fn() } }`. Se agregaron 9 tests nuevos para `createPurchaseBulk`.
 
 ---
 
@@ -196,7 +244,7 @@ Todo dentro de una transacción.
 
 2. **Hard-delete categorías, soft-delete presentaciones** — la categoría se elimina físicamente para evitar conflicts con el índice parcial. Los productos de presentación se marcan `isActive: false` + `categoryId: null`.
 
-3. **Nullear FK en purchases y products al eliminar categoría** — ambas tablas tienen `category_id REFERENCES egg_categories(id)` sin CASCADE. Los updates de limpieza de FK en `remove()` NO filtran por `tenantId` — la FK es global en PostgreSQL y cualquier referencia pendiente bloquea el `category.destroy()`.
+3. **Nullear FK en purchases y products al eliminar categoría** — ambas tablas tienen `category_id REFERENCES egg_categories(id)` sin CASCADE. Los updates de limpieza de FK en `remove()` filtran por `tenantId` (seguro: `egg_categories.id` es PK SERIAL global, el filtro es check extra de seguridad). Todo en transacción.
 
 4. **Constraint UNIQUE global eliminada** — la tabla `products` y `egg_categories` solo tienen índice parcial `WHERE is_active = true`. Esto permite recrear una categoría con el mismo nombre después de eliminarla.
 
@@ -213,6 +261,8 @@ Todo dentro de una transacción.
 ## Convenciones del Proyecto
 
 ### Backend
+- **`authMiddleware`** exporta array `[jwtVerify, tenantMiddleware, rlsMiddleware]`. Todo middleware JWT automáticamente setea contexto RLS en Postgres.
+- **`rlsMiddleware`** (`server/src/middlewares/rlsMiddleware.js`) — Opción B (SET de sesión). Setea `app.tenant_id` y `app.role` en la conexión PostgreSQL. Importa desde `../config/database` (no `../models`) para compatibilidad con mocks de tests.
 - **Respuestas API:** `{ success: bool, data: any, message?: string, error?: string }`
 - **Errores operacionales:** `throw new AppError(message, statusCode)` — nunca `res.status().json()` en catch
 - **Queries multi-tenant:** siempre incluir `tenantId` en `where`
@@ -248,4 +298,5 @@ Conventional Commits: `feat:`, `fix:`, `refactor:`, `chore:`, `test:`, `docs:`
 
 ### Deuda pendiente
 - Testear flujo completo eliminar → recrear categoría con el mismo nombre en producción
-- El producto "Aceite" (u otro genérico comprado antes del fix) puede tener `stockQuantity = 0.01` en la BD. Corregirlo eliminando y re-registrando la compra, o editando stock directamente desde la tab "Productos Cargados".
+- El producto "Aceite" puede tener `stockQuantity = 0.01` en la BD (comprado antes del fix). Corregir desde tab "Productos Cargados" o eliminando y re-registrando la compra.
+- **Transaction Pooler Supabase** — migrar env vars a puerto 6543 para aprovechar `pool.max: 20`.
