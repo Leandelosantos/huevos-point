@@ -14,6 +14,9 @@ import {
   LinearProgress,
   Collapse,
   Button,
+  Select,
+  MenuItem,
+  FormControl,
 } from '@mui/material';
 import { PieChart, pieArcLabelClasses } from '@mui/x-charts/PieChart';
 import { useDrawingArea } from '@mui/x-charts/hooks';
@@ -215,6 +218,49 @@ const monthLabel = (ym) => {
   return new Date(year, month - 1, 1).toLocaleString('es-ES', { month: 'long', year: 'numeric' });
 };
 
+const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// Selector de mes+año compatible con iOS Safari (reemplaza input[type="month"])
+const MonthYearPicker = ({ value, onChange }) => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const [selYear, selMonth] = value.split('-').map(Number);
+
+  const years = [];
+  for (let y = 2024; y <= currentYear; y++) years.push(y);
+
+  const handleYear = (newYear) => {
+    const clampedMonth = newYear === currentYear && selMonth > currentMonth ? currentMonth : selMonth;
+    onChange(`${newYear}-${String(clampedMonth).padStart(2, '0')}`);
+  };
+
+  const handleMonth = (newMonth) => {
+    onChange(`${selYear}-${String(newMonth).padStart(2, '0')}`);
+  };
+
+  const selectSx = { fontSize: 13, '& .MuiSelect-select': { py: '6px', px: '10px' } };
+
+  return (
+    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+      <FormControl size="small">
+        <Select value={selMonth} onChange={(e) => handleMonth(e.target.value)} sx={selectSx}>
+          {MONTH_NAMES.map((name, i) => {
+            const monthNum = i + 1;
+            const disabled = selYear === currentYear && monthNum > currentMonth;
+            return <MenuItem key={monthNum} value={monthNum} disabled={disabled}>{name}</MenuItem>;
+          })}
+        </Select>
+      </FormControl>
+      <FormControl size="small">
+        <Select value={selYear} onChange={(e) => handleYear(e.target.value)} sx={selectSx}>
+          {years.map((y) => <MenuItem key={y} value={y}>{y}</MenuItem>)}
+        </Select>
+      </FormControl>
+    </Box>
+  );
+};
+
 const MonthlyBalanceCard = () => {
   const { formatAmount } = useCurrency();
   const [selectedYM, setSelectedYM] = useState(todayYM);
@@ -253,20 +299,7 @@ const MonthlyBalanceCard = () => {
               Saldo neto del mes{isCurrentMonth ? ' (en curso)' : ''}
             </Typography>
           </Box>
-          <input
-            type="month"
-            value={selectedYM}
-            max={todayYM()}
-            onChange={(e) => e.target.value && setSelectedYM(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              borderRadius: 8,
-              border: '1px solid #ccc',
-              fontSize: 14,
-              fontFamily: 'inherit',
-              cursor: 'pointer',
-            }}
-          />
+          <MonthYearPicker value={selectedYM} onChange={setSelectedYM} />
         </Box>
 
         {loadingBalance ? (
@@ -401,20 +434,7 @@ const ProductsBarChartCard = () => {
               Productos vendidos{isCurrentMonth ? ' (mes en curso)' : ` — ${label}`}
             </Typography>
           </Box>
-          <input
-            type="month"
-            value={selectedYM}
-            max={todayYM()}
-            onChange={(e) => e.target.value && setSelectedYM(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              borderRadius: 8,
-              border: '1px solid #ccc',
-              fontSize: 14,
-              fontFamily: 'inherit',
-              cursor: 'pointer',
-            }}
-          />
+          <MonthYearPicker value={selectedYM} onChange={setSelectedYM} />
         </Box>
 
         {/* Chart body */}
@@ -501,6 +521,9 @@ const MetricsPage = () => {
     currentMonthAll: [],
   });
   const [loading, setLoading] = useState(true);
+  const [expandedStock, setExpandedStock] = useState(false);
+
+  const STOCK_VISIBLE_LIMIT = 10;
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -613,43 +636,58 @@ const MetricsPage = () => {
               {loading ? (
                 <Skeleton variant="rectangular" height={150} sx={{ borderRadius: 2 }} />
               ) : (
-                <Paper variant="outlined" sx={{ borderRadius: 2 }}>
-                  <List disablePadding>
-                    {metrics.lowStockProducts.length === 0 ? (
-                      <ListItem>
-                        <ListItemText primary="Todos los productos tienen un stock saludable." />
-                      </ListItem>
-                    ) : (
-                      metrics.lowStockProducts.map((p, index) => (
-                        <React.Fragment key={p.id}>
-                          <ListItem>
-                            <ListItemText 
-                              primary={
-                                <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                  {p.name}
+                <>
+                  <Paper variant="outlined" sx={{ borderRadius: 2 }}>
+                    <List disablePadding>
+                      {metrics.lowStockProducts.length === 0 ? (
+                        <ListItem>
+                          <ListItemText primary="Todos los productos tienen un stock saludable." />
+                        </ListItem>
+                      ) : (
+                        <>
+                          {metrics.lowStockProducts.slice(0, STOCK_VISIBLE_LIMIT).map((p, index) => (
+                            <React.Fragment key={p.id}>
+                              <ListItem>
+                                <ListItemText primary={<Typography variant="body1" sx={{ fontWeight: 600 }}>{p.name}</Typography>} />
+                                <Typography variant="body2" sx={{ fontWeight: 800, color: p.stockQuantity === 0 ? '#C62828' : '#D84315', backgroundColor: p.stockQuantity === 0 ? 'rgba(198, 40, 40, 0.1)' : 'rgba(216, 67, 21, 0.1)', px: 1.5, py: 0.5, borderRadius: 5 }}>
+                                  Stock actual: {p.stockQuantity}
                                 </Typography>
-                              } 
-                            />
-                            <Typography 
-                              variant="body2" 
-                              sx={{ 
-                                fontWeight: 800, 
-                                color: p.stockQuantity === 0 ? '#C62828' : '#D84315',
-                                backgroundColor: p.stockQuantity === 0 ? 'rgba(198, 40, 40, 0.1)' : 'rgba(216, 67, 21, 0.1)',
-                                px: 1.5,
-                                py: 0.5,
-                                borderRadius: 5
-                              }}
-                            >
-                              Stock actual: {p.stockQuantity}
-                            </Typography>
-                          </ListItem>
-                          {index < metrics.lowStockProducts.length - 1 && <Divider component="li" />}
-                        </React.Fragment>
-                      ))
-                    )}
-                  </List>
-                </Paper>
+                              </ListItem>
+                              {index < Math.min(STOCK_VISIBLE_LIMIT, metrics.lowStockProducts.length) - 1 && <Divider component="li" />}
+                            </React.Fragment>
+                          ))}
+                          {metrics.lowStockProducts.length > STOCK_VISIBLE_LIMIT && (
+                            <>
+                              <Collapse in={expandedStock}>
+                                {metrics.lowStockProducts.slice(STOCK_VISIBLE_LIMIT).map((p) => (
+                                  <React.Fragment key={p.id}>
+                                    <Divider component="li" />
+                                    <ListItem>
+                                      <ListItemText primary={<Typography variant="body1" sx={{ fontWeight: 600 }}>{p.name}</Typography>} />
+                                      <Typography variant="body2" sx={{ fontWeight: 800, color: p.stockQuantity === 0 ? '#C62828' : '#D84315', backgroundColor: p.stockQuantity === 0 ? 'rgba(198, 40, 40, 0.1)' : 'rgba(216, 67, 21, 0.1)', px: 1.5, py: 0.5, borderRadius: 5 }}>
+                                        Stock actual: {p.stockQuantity}
+                                      </Typography>
+                                    </ListItem>
+                                  </React.Fragment>
+                                ))}
+                              </Collapse>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </List>
+                  </Paper>
+                  {metrics.lowStockProducts.length > STOCK_VISIBLE_LIMIT && (
+                    <Button
+                      size="small"
+                      onClick={() => setExpandedStock((prev) => !prev)}
+                      endIcon={expandedStock ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
+                      sx={{ mt: 1.5, color: '#E63946', fontWeight: 600, textTransform: 'none', '&:hover': { backgroundColor: 'rgba(230, 57, 70, 0.06)' } }}
+                    >
+                      {expandedStock ? 'Ver menos' : `Ver todos (${metrics.lowStockProducts.length - STOCK_VISIBLE_LIMIT} más)`}
+                    </Button>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>

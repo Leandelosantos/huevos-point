@@ -3,7 +3,7 @@ const { User, Tenant } = require('../../models');
 const findByUsername = async (username) => {
   return User.findOne({
     where: { username, isActive: true },
-    include: [{ model: Tenant, as: 'tenants', attributes: ['id', 'name'], through: { attributes: [] } }],
+    include: [{ model: Tenant, as: 'tenants', attributes: ['id', 'name', 'theme'], through: { attributes: [] } }],
   });
 };
 
