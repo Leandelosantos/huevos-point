@@ -98,7 +98,7 @@ const Sidebar = ({ mobileOpen, onMobileClose, desktopOpen, onDrawerToggle, topOf
     ...(isAdmin || isSuperAdmin || isDemo
       ? [
           { label: 'Stock', icon: <InventoryRoundedIcon />, path: '/stock' },
-          { label: 'Compras', icon: <ShoppingCartRoundedIcon />, path: '/purchases' },
+          { label: 'Compras/Cajas', icon: <ShoppingCartRoundedIcon />, path: '/purchases' },
           { label: 'Auditoría', icon: <HistoryRoundedIcon />, path: '/audit' },
           { label: 'Métricas', icon: <BarChartRoundedIcon />, path: '/metrics' },
         ]

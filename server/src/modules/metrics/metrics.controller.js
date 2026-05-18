@@ -3,11 +3,12 @@ const metricsService = require('./metrics.service');
 class MetricsController {
   async getMetrics(req, res, next) {
     try {
-      const [currentMonthTop, previousMonthTop, lowStockProducts, currentMonthAll] = await Promise.all([
+      const [currentMonthTop, previousMonthTop, lowStockProducts, currentMonthAll, unmovedProducts] = await Promise.all([
         metricsService.getTopProductsCurrentMonth(req.tenantId),
         metricsService.getTopProductsPreviousMonth(req.tenantId),
         metricsService.getLowStockProducts(req.tenantId),
         metricsService.getAllProductsSoldCurrentMonth(req.tenantId),
+        metricsService.getUnmovedProducts(req.tenantId),
       ]);
 
       res.status(200).json({
@@ -17,6 +18,7 @@ class MetricsController {
           previousMonthTop,
           lowStockProducts,
           currentMonthAll,
+          unmovedProducts,
         },
       });
     } catch (error) {

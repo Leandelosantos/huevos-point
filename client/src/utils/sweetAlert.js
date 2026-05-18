@@ -28,6 +28,17 @@ export const showErrorToast = (title) => {
   });
 };
 
+// z-index mayor que MUI Dialog (1300) para que SweetAlert aparezca siempre al frente
+const ABOVE_MODAL = { container: 'swal-above-modal' };
+
+// Inyectar el estilo globalmente una sola vez
+if (typeof document !== 'undefined' && !document.getElementById('swal-above-modal-style')) {
+  const style = document.createElement('style');
+  style.id = 'swal-above-modal-style';
+  style.textContent = '.swal-above-modal { z-index: 9999 !important; }';
+  document.head.appendChild(style);
+}
+
 export const showErrorAlert = (title, text) => {
   return Swal.fire({
     icon: 'error',
@@ -35,6 +46,7 @@ export const showErrorAlert = (title, text) => {
     text,
     confirmButtonColor: '#2D6A4F',
     confirmButtonText: 'Entendido',
+    customClass: ABOVE_MODAL,
   });
 };
 
@@ -45,6 +57,7 @@ export const showWarningAlert = (title, text) => {
     text,
     confirmButtonColor: '#F57C00',
     confirmButtonText: 'Entendido',
+    customClass: ABOVE_MODAL,
   });
 };
 
@@ -54,10 +67,11 @@ export const showConfirmation = async (title, text, confirmText = 'Sí, continua
     text,
     icon: 'warning',
     showCancelButton: true,
-    confirmButtonColor: '#C62828', // Destructivo por defecto
+    confirmButtonColor: '#C62828',
     cancelButtonColor: '#757575',
     confirmButtonText: confirmText,
     cancelButtonText: revertText,
+    customClass: ABOVE_MODAL,
   });
   return result.isConfirmed;
 };

@@ -261,25 +261,40 @@ const runMigrations = async () => {
     )
   `);
   console.log('✅ Migraciones Fase 3 aplicadas');
+
+  // ── Cajas: retiros de efectivo / deuda huevos ────────────────────────────
+  await sequelize.query(`
+    CREATE TABLE IF NOT EXISTS cash_withdrawals (
+      id SERIAL PRIMARY KEY,
+      tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+      user_id INT NOT NULL REFERENCES users(id),
+      withdrawal_date DATE NOT NULL,
+      source VARCHAR(20) NOT NULL,
+      type VARCHAR(20) NOT NULL,
+      amount DECIMAL(12,2) NOT NULL,
+      concept TEXT DEFAULT NULL,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )
+  `);
+  await sequelize.query(`CREATE INDEX IF NOT EXISTS cash_withdrawals_tenant_date_idx ON cash_withdrawals (tenant_id, withdrawal_date)`);
+  console.log('✅ Migración aplicada: cash_withdrawals');
 };
 
 const startServer = async () => {
   try {
-    // Test database connection
     await sequelize.authenticate();
     console.log('✅ Conexión a la base de datos exitosa');
 
-    // Run pending schema migrations (works in any environment)
-    await runMigrations();
+    if (process.env.SKIP_MIGRATIONS !== 'true') {
+      await runMigrations();
+      await sequelize.sync({ alter: false });
+      console.log('✅ Modelos sincronizados');
+      await seedDatabase();
+    } else {
+      console.log('⚡ SKIP_MIGRATIONS=true — migraciones y seed salteados');
+    }
 
-    // Sync models (creates tables if they don't exist)
-    await sequelize.sync({ alter: env.NODE_ENV === 'development' });
-    console.log('✅ Modelos sincronizados');
-
-    // Run seed
-    await seedDatabase();
-
-    // Start HTTP server
     app.listen(env.PORT, () => {
       console.log(`🥚 Huevos Point API corriendo en http://localhost:${env.PORT}`);
     });

@@ -318,6 +318,101 @@ const deletePurchase = async (id, tenantId) => {
   }
 };
 
+// ── Cajas & Deuda ─────────────────────────────────────────────────────────
+
+const getCashSummary = async (tenantId, year, month) => {
+  const [sales, withdrawals, debt] = await Promise.all([
+    purchasesRepository.getSalesByMonth(tenantId, year, month),
+    purchasesRepository.getWithdrawalsByMonth(tenantId, year, month),
+    purchasesRepository.getEggDebtTotal(tenantId),
+  ]);
+
+  // Monthly raw totals from sales
+  const rawTotals = purchasesRepository.computeSaleTotals(sales);
+  const monthTotals = rawTotals.reduce(
+    (acc, d) => ({ efectivo: acc.efectivo + d.efectivo, digital: acc.digital + d.digital, rappi: acc.rappi + d.rappi }),
+    { efectivo: 0, digital: 0, rappi: 0 }
+  );
+
+  // Withdrawals for the month, grouped by source
+  const withdrawn = withdrawals.reduce(
+    (acc, w) => ({ ...acc, [w.source]: (acc[w.source] || 0) + parseFloat(w.amount) }),
+    { efectivo: 0, digital: 0, rappi: 0 }
+  );
+
+  return {
+    month: { year, month },
+    efectivo: { gross: monthTotals.efectivo, withdrawn: withdrawn.efectivo, net: monthTotals.efectivo - withdrawn.efectivo },
+    digital: { gross: monthTotals.digital, withdrawn: withdrawn.digital, net: monthTotals.digital - withdrawn.digital },
+    rappi: { gross: monthTotals.rappi, withdrawn: withdrawn.rappi, net: monthTotals.rappi - withdrawn.rappi },
+    eggDebt: debt,
+  };
+};
+
+const getCashRegisters = async (tenantId, year, month) => {
+  const [sales, withdrawals] = await Promise.all([
+    purchasesRepository.getSalesByMonth(tenantId, year, month),
+    purchasesRepository.getWithdrawalsByMonth(tenantId, year, month),
+  ]);
+
+  const dailyTotals = purchasesRepository.computeSaleTotals(sales);
+
+  // Attach withdrawals to each day
+  const withdrawalsByDate = {};
+  for (const w of withdrawals) {
+    const key = w.withdrawalDate;
+    if (!withdrawalsByDate[key]) withdrawalsByDate[key] = [];
+    withdrawalsByDate[key].push(w);
+  }
+
+  return dailyTotals.map((day) => ({
+    ...day,
+    withdrawals: withdrawalsByDate[day.date] || [],
+  }));
+};
+
+const registerWithdrawal = async ({ tenantId, userId, withdrawalDate, source, type, amount, concept }) => {
+  if (!['efectivo', 'digital', 'rappi'].includes(source)) {
+    throw new AppError('source inválido (efectivo | digital | rappi)', 400);
+  }
+  if (!['deuda_huevos', 'otros'].includes(type)) {
+    throw new AppError('type inválido (deuda_huevos | otros)', 400);
+  }
+  if (type === 'otros' && (!concept || !concept.trim())) {
+    throw new AppError('El concepto es obligatorio cuando type es "otros"', 400);
+  }
+  if (!amount || parseFloat(amount) <= 0) {
+    throw new AppError('El importe debe ser mayor a 0', 400);
+  }
+
+  // Deuda no puede quedar negativa
+  if (type === 'deuda_huevos') {
+    const debt = await purchasesRepository.getEggDebtTotal(tenantId);
+    if (parseFloat(amount) > debt.debtAmount) {
+      throw new AppError(
+        `El importe ($${parseFloat(amount).toLocaleString('es-AR')}) supera la deuda actual ($${debt.debtAmount.toLocaleString('es-AR')}). La deuda no puede quedar negativa.`,
+        400
+      );
+    }
+  }
+
+  const withdrawal = await purchasesRepository.createWithdrawal({
+    tenantId,
+    userId,
+    withdrawalDate,
+    source,
+    type,
+    amount: parseFloat(amount),
+    concept: concept?.trim() || null,
+  });
+
+  return withdrawal;
+};
+
+const getEggDebt = async (tenantId) => {
+  return purchasesRepository.getEggDebtTotal(tenantId);
+};
+
 module.exports = {
   createPurchaseBulk,
   createPurchase,
@@ -325,4 +420,8 @@ module.exports = {
   getPurchaseReceipt,
   updatePurchase,
   deletePurchase,
+  getCashSummary,
+  getCashRegisters,
+  registerWithdrawal,
+  getEggDebt,
 };

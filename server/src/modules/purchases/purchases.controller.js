@@ -201,6 +201,70 @@ const deletePurchase = async (req, res, next) => {
   }
 };
 
+const getCashSummary = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const year = parseInt(req.query.year, 10) || now.getFullYear();
+    const month = parseInt(req.query.month, 10) || now.getMonth() + 1;
+    if (month < 1 || month > 12) return res.status(400).json({ success: false, message: 'Mes inválido' });
+    const data = await purchasesService.getCashSummary(req.tenantId, year, month);
+    res.json({ success: true, data });
+  } catch (error) { next(error); }
+};
+
+const getCashRegisters = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const year = parseInt(req.query.year, 10) || now.getFullYear();
+    const month = parseInt(req.query.month, 10) || now.getMonth() + 1;
+    if (month < 1 || month > 12) return res.status(400).json({ success: false, message: 'Mes inválido' });
+    const data = await purchasesService.getCashRegisters(req.tenantId, year, month);
+    res.json({ success: true, data });
+  } catch (error) { next(error); }
+};
+
+const createWithdrawal = async (req, res, next) => {
+  try {
+    const { withdrawalDate, source, type, amount, concept } = req.body;
+    if (!withdrawalDate || !source || !type || !amount) {
+      throw new AppError('Faltan campos requeridos: withdrawalDate, source, type, amount', 400);
+    }
+    const withdrawal = await purchasesService.registerWithdrawal({
+      tenantId: req.tenantId,
+      userId: req.user.id,
+      withdrawalDate,
+      source,
+      type,
+      amount,
+      concept,
+    });
+
+    const sourceLabel = { efectivo: 'Efectivo', digital: 'Digital (MP/Transferencia/DNI)', rappi: 'Rappi' }[source] || source;
+    const typeLabel = type === 'deuda_huevos' ? 'Deuda de huevos' : `Otros — ${concept}`;
+
+    await createAuditLog({
+      userId: req.user.id,
+      username: req.user.username,
+      tenantId: req.tenantId,
+      actionType: 'RETIRO_REGISTRADO',
+      entity: 'cash_withdrawals',
+      entityId: withdrawal.id,
+      description: `Retiro de ${sourceLabel}: $${amount} — ${typeLabel}`,
+      newData: { source, type, amount, concept },
+      ipAddress: req.ip,
+    });
+
+    res.status(201).json({ success: true, data: withdrawal, message: 'Retiro registrado' });
+  } catch (error) { next(error); }
+};
+
+const getEggDebt = async (req, res, next) => {
+  try {
+    const data = await purchasesService.getEggDebt(req.tenantId);
+    res.json({ success: true, data });
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   createBulk,
   createPurchase,
@@ -208,4 +272,8 @@ module.exports = {
   getReceipt,
   updatePurchase,
   deletePurchase,
+  getCashSummary,
+  getCashRegisters,
+  createWithdrawal,
+  getEggDebt,
 };

@@ -96,6 +96,34 @@ class MetricsService {
     return { totalIncome, totalExpenses, netBalance: totalIncome - totalExpenses, year, month };
   }
 
+  async getUnmovedProducts(tenantId) {
+    const query = `
+      SELECT p.id, p.name, p.stock_quantity AS "stockQuantity"
+      FROM products p
+      WHERE p.tenant_id = :tenantId
+        AND p.is_active = true
+        AND p.id NOT IN (
+          SELECT DISTINCT si.product_id
+          FROM sale_items si
+          INNER JOIN sales s ON si.sale_id = s.id
+          WHERE s.tenant_id = :tenantId
+            AND s.sale_date >= CURRENT_DATE - INTERVAL '30 days'
+        )
+      ORDER BY p.name
+    `;
+
+    const rows = await sequelize.query(query, {
+      replacements: { tenantId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    return rows.map((p) => ({
+      id: p.id,
+      name: p.name,
+      stockQuantity: parseFloat(p.stockQuantity),
+    }));
+  }
+
   async getLowStockProducts(tenantId) {
     const products = await Product.findAll({
       where: {

@@ -190,6 +190,18 @@ Todo dentro de una transacción.
 - **Fix stock decimal en compras de productos genéricos** — `purchases.service.js`: `product.stockQuantity || 0` causaba concatenación de strings (`"0.00" + 5 = "0.005"` → PostgreSQL redondeaba a `0.01`). Corregido a `parseFloat(product.stockQuantity) || 0`.
 - **Fix display de stock en SaleModal** — `getAvailableStock` para productos genéricos usa `Math.floor(parseFloat(product.stockQuantity) || 0)` en vez de raw `product.stockQuantity` (que era string de Sequelize).
 
+### Recientemente implementado (sesión 2026-05-15 — parte 2)
+
+- **Comprobante en egresos** — Modelo `Expense.js` + migración cold-start: columnas `receipt_data TEXT` y `receipt_mime_type VARCHAR(50)`. `expenses.service.js` y `expenses.controller.js` pasan los campos. `ExpenseModal.jsx` tiene dos inputs hidden: uno sin `capture` (galería/explorador, acepta PDF+imagen) y uno con `capture="environment"` (cámara directa en móvil). Límite 2 MB. Preview del archivo adjunto + botón quitar. `dashboard.service.js` incluye `receiptData`/`receiptMimeType` en el mapeo de egresos.
+
+- **Columna "Comprobante" en tabla de movimientos** — `DashboardPage.jsx`: columna nueva. En EGRESO con comprobante: `IconButton` rojo + `ReceiptRoundedIcon` + tooltip. Modal viewer: imagen con `<img>` para JPG/PNG, `<iframe>` para PDF — base64. Skeleton y `colSpan` actualizados a 7 columnas.
+
+- **Sucursal por defecto en login** — `AuthContext.jsx`: al hacer login, lee `localStorage.getItem('defaultTenant_<username>')`. Si existe y matchea un tenant del usuario, lo usa como `activeTenant`. Sino, usa `tenants[0]`. `ConfigPage.jsx`: sección "Sucursal por defecto" visible solo si el usuario tiene ≥2 sucursales. Cards-radio custom, click guarda en localStorage, click sobre el seleccionado lo deselecciona. Preferencia es por usuario, no afecta a otros.
+
+- **Fix tema eliminado al cambiar sucursal por defecto** — `App.jsx` `ThemeSyncer`: antes llamaba `applyTheme(activeTenant?.theme)` siempre, incluso con `null` → revertía al tema default. Fix: `if (activeTenant?.theme) applyTheme(activeTenant.theme)`.
+
+- **Cierre de sesión por inactividad (1 hora)** — `hooks/useInactivityTimer.js` (nuevo): timer 60 min, resetea ante `click`, `keydown`, `scroll`, `touchstart` (no `mousemove`). Se limpia al desautenticarse. `App.jsx` `InactivityWatcher`: componente que usa el hook y llama `logout('inactivity')`. `AuthContext.jsx` `logout(reason)`: pasa `?reason=inactivity` al endpoint. Backend `auth.controller.js`: `POST /auth/logout?reason=inactivity` → audit log con descripción `"Sesion cerrada por inactividad (username)"`.
+
 ### Recientemente implementado (sesión 2026-05-15)
 
 - **Exportación Excel — mejoras visuales** — `DashboardPage.jsx` `exportToExcel`:

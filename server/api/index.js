@@ -329,6 +329,24 @@ const migrationPromise = (async () => {
       )
     `);
     console.log('[migration] Fase 3: subscription_plans + subscriptions + payments + onboarding ensured');
+
+    // ── Cajas: retiros de efectivo / deuda huevos ──────────────────────────
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS cash_withdrawals (
+        id SERIAL PRIMARY KEY,
+        tenant_id INT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        user_id INT NOT NULL REFERENCES users(id),
+        withdrawal_date DATE NOT NULL,
+        source VARCHAR(20) NOT NULL,
+        type VARCHAR(20) NOT NULL,
+        amount DECIMAL(12,2) NOT NULL,
+        concept TEXT DEFAULT NULL,
+        created_at TIMESTAMPTZ DEFAULT now(),
+        updated_at TIMESTAMPTZ DEFAULT now()
+      )
+    `);
+    await sequelize.query(`CREATE INDEX IF NOT EXISTS cash_withdrawals_tenant_date_idx ON cash_withdrawals (tenant_id, withdrawal_date)`);
+    console.log('[migration] cash_withdrawals ensured');
   } catch (e) {
     console.error('[migration error]', e.message);
   }

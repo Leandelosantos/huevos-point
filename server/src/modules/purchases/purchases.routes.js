@@ -10,13 +10,17 @@ const router = express.Router();
 router.use(authMiddleware);
 router.use(tenantMiddleware);
 
-// Only admins and superadmins can record or see purchases (since it affects cost/margin, usually restricted to admin/owner)
+// Cajas & deuda — BEFORE /:id routes to avoid param capture
+router.get('/cash/summary', requireRole('admin'), purchasesController.getCashSummary);
+router.get('/cash/registers', requireRole('admin'), purchasesController.getCashRegisters);
+router.get('/cash/egg-debt', requireRole('admin'), purchasesController.getEggDebt);
+router.post('/cash/withdrawals', requireRole('admin'), purchasesController.createWithdrawal);
+
+// Purchases CRUD
 router.post('/bulk', requireRole('admin'), purchasesController.createBulk);
 router.post('/', requireRole('admin'), validatePurchase, purchasesController.createPurchase);
 router.get('/', requireRole('admin'), purchasesController.getPurchases);
 router.get('/:id/receipt', requireRole('admin'), purchasesController.getReceipt);
-
-// Edit and delete are superadmin-only (stock reversal is destructive)
 router.put('/:id', requireRole('superadmin'), purchasesController.updatePurchase);
 router.delete('/:id', requireRole('superadmin'), purchasesController.deletePurchase);
 

@@ -14,6 +14,7 @@ const ContactRequest = require('./ContactRequest');
 const SuperadminAuditLog = require('./SuperadminAuditLog');
 const ApiKey = require('./ApiKey');
 const EggCategory = require('./EggCategory');
+const CashWithdrawal = require('./CashWithdrawal');
 
 // Tenant Associations
 Tenant.belongsToMany(User, { through: { model: 'user_tenants', timestamps: false }, foreignKey: 'tenant_id', otherKey: 'user_id', as: 'users' });
@@ -85,6 +86,12 @@ SuperadminAuditLog.belongsTo(Tenant, { foreignKey: 'targetTenant', as: 'tenant' 
 // ApiKey associations
 ApiKey.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
 
+// CashWithdrawal associations
+Tenant.hasMany(CashWithdrawal, { foreignKey: 'tenantId', as: 'cashWithdrawals' });
+CashWithdrawal.belongsTo(Tenant, { foreignKey: 'tenantId', as: 'tenant' });
+User.hasMany(CashWithdrawal, { foreignKey: 'userId', as: 'cashWithdrawals' });
+CashWithdrawal.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 module.exports = {
   Tenant,
   User,
@@ -102,4 +109,5 @@ module.exports = {
   SuperadminAuditLog,
   ApiKey,
   EggCategory,
+  CashWithdrawal,
 };

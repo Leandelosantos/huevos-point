@@ -23,6 +23,7 @@ import { useDrawingArea } from '@mui/x-charts/hooks';
 import { styled } from '@mui/material/styles';
 import api from '../services/api';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import RemoveShoppingCartRoundedIcon from '@mui/icons-material/RemoveShoppingCartRounded';
 import InsertChartRoundedIcon from '@mui/icons-material/InsertChartRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
@@ -519,9 +520,11 @@ const MetricsPage = () => {
     previousMonthTop: [],
     lowStockProducts: [],
     currentMonthAll: [],
+    unmovedProducts: [],
   });
   const [loading, setLoading] = useState(true);
   const [expandedStock, setExpandedStock] = useState(false);
+  const [expandedUnmoved, setExpandedUnmoved] = useState(false);
 
   const STOCK_VISIBLE_LIMIT = 10;
 
@@ -685,6 +688,75 @@ const MetricsPage = () => {
                       sx={{ mt: 1.5, color: '#E63946', fontWeight: 600, textTransform: 'none', '&:hover': { backgroundColor: 'rgba(230, 57, 70, 0.06)' } }}
                     >
                       {expandedStock ? 'Ver menos' : `Ver todos (${metrics.lowStockProducts.length - STOCK_VISIBLE_LIMIT} más)`}
+                    </Button>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+        {/* Unmoved Products Alert */}
+        <Grid item xs={12}>
+          <Card sx={{ borderRadius: 3, boxShadow: '0px 4px 20px rgba(0,0,0,0.05)' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1 }}>
+                <RemoveShoppingCartRoundedIcon sx={{ color: '#E65100' }} />
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Productos sin ventas en los últimos 30 días
+                </Typography>
+              </Box>
+              {loading ? (
+                <Skeleton variant="rectangular" height={150} sx={{ borderRadius: 2 }} />
+              ) : (
+                <>
+                  <Paper variant="outlined" sx={{ borderRadius: 2 }}>
+                    <List disablePadding>
+                      {metrics.unmovedProducts.length === 0 ? (
+                        <ListItem>
+                          <ListItemText primary="Todos los productos tuvieron al menos una venta en los últimos 30 días." />
+                        </ListItem>
+                      ) : (
+                        <>
+                          {metrics.unmovedProducts.slice(0, STOCK_VISIBLE_LIMIT).map((p, index) => (
+                            <React.Fragment key={p.id}>
+                              <ListItem>
+                                <ListItemText primary={<Typography variant="body1" sx={{ fontWeight: 600 }}>{p.name}</Typography>} />
+                                <Typography variant="body2" sx={{ fontWeight: 800, color: '#E65100', backgroundColor: 'rgba(230, 81, 0, 0.08)', px: 1.5, py: 0.5, borderRadius: 5 }}>
+                                  Stock: {p.stockQuantity}
+                                </Typography>
+                              </ListItem>
+                              {index < Math.min(STOCK_VISIBLE_LIMIT, metrics.unmovedProducts.length) - 1 && <Divider component="li" />}
+                            </React.Fragment>
+                          ))}
+                          {metrics.unmovedProducts.length > STOCK_VISIBLE_LIMIT && (
+                            <>
+                              <Collapse in={expandedUnmoved}>
+                                {metrics.unmovedProducts.slice(STOCK_VISIBLE_LIMIT).map((p) => (
+                                  <React.Fragment key={p.id}>
+                                    <Divider component="li" />
+                                    <ListItem>
+                                      <ListItemText primary={<Typography variant="body1" sx={{ fontWeight: 600 }}>{p.name}</Typography>} />
+                                      <Typography variant="body2" sx={{ fontWeight: 800, color: '#E65100', backgroundColor: 'rgba(230, 81, 0, 0.08)', px: 1.5, py: 0.5, borderRadius: 5 }}>
+                                        Stock: {p.stockQuantity}
+                                      </Typography>
+                                    </ListItem>
+                                  </React.Fragment>
+                                ))}
+                              </Collapse>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </List>
+                  </Paper>
+                  {metrics.unmovedProducts.length > STOCK_VISIBLE_LIMIT && (
+                    <Button
+                      size="small"
+                      onClick={() => setExpandedUnmoved((prev) => !prev)}
+                      endIcon={expandedUnmoved ? <ExpandLessRoundedIcon /> : <ExpandMoreRoundedIcon />}
+                      sx={{ mt: 1.5, color: '#E65100', fontWeight: 600, textTransform: 'none', '&:hover': { backgroundColor: 'rgba(230, 81, 0, 0.06)' } }}
+                    >
+                      {expandedUnmoved ? 'Ver menos' : `Ver todos (${metrics.unmovedProducts.length - STOCK_VISIBLE_LIMIT} más)`}
                     </Button>
                   )}
                 </>
